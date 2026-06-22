@@ -1,0 +1,58 @@
+:root {
+  --bg: #111113;
+  --surface: #1c1c1f;
+  --surface2: #26262b;
+  --border: #333338;
+  --accent: #7c6af7;
+  --accent-hover: #9585f9;
+  --text: #e8e8ec;
+  --text-muted: #888892;
+  --success: #34d399;
+  --error: #f87171;
+  --radius: 10px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 2.5rem 1rem;
+}
+
+#root {
+  width: 100%;
+  max-width: 680px;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.65rem 1.2rem;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+select {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
+select:focus { border-color: var(--accent); }

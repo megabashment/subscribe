@@ -1,0 +1,42 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.pill {
+  font-size: 12px;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-weight: 500;
+}
+
+.online  { color: var(--success); border-color: var(--success); }
+.offline { color: var(--error);   border-color: var(--error); }
+.checking { color: var(--text-muted); }
+
+.runBtn {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 0.85rem;
+  width: 100%;
+  letter-spacing: 0.01em;
+}
+
+.runBtn:hover { background: var(--accent-hover); }

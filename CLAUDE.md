@@ -2,9 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> Lokales CLI-Tool zur automatischen Transkription von Mediendateien mit Word-Level-Timestamps und Export in gängige Untertitelformate.
+> Lokales CLI-Tool + Web-App zur automatischen Transkription von Mediendateien mit Word-Level-Timestamps und Export in gängige Untertitelformate.
 
-**Status:** Sprint 1 abgeschlossen — MVP-Transkription + Streamlit-UI lauffähig
+**Status:** Sprint 1 abgeschlossen — MVP-Transkription + FastAPI + React-UI lauffähig
 
 ---
 
@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Mediendateien (Video/Audio) lokal transkribieren — Spracherkennung, Wort-für-Wort-Timestamps, Export als `.srt`/`.vtt`/`.json`, ohne Cloud-Dienste.
 
-**Out of Scope (Phase 1):** Kein Webservice, keine Live-Transkription, keine Übersetzung.
+**Out of Scope (Phase 1):** Keine Live-Transkription, keine Übersetzung.
 
 **MVP-Kriterium:** `mp4/mkv/mp3/wav` rein → valide `.srt` raus, die in VLC ohne Nachbearbeitung korrekt läuft.
 
@@ -25,6 +25,7 @@ Diese müssen **vor** dem ersten `subscribe run` auf dem System installiert sein
 | Tool | Wann nötig | Installation |
 |---|---|---|
 | `ffmpeg` | Sprint 0 (Setup) | `winget install Gyan.FFmpeg` |
+| `node` + `npm` | Frontend-Dev | bereits vorhanden (v25.8) |
 | CUDA Toolkit | optional, für GPU-Beschleunigung | nvidia.com |
 
 **ffmpeg muss im PATH sein.** Nach `winget`-Installation einmalig Shell neu starten.
@@ -38,8 +39,9 @@ Diese müssen **vor** dem ersten `subscribe run` auf dem System installiert sein
 | ASR-Engine | `faster-whisper` (CTranslate2) |
 | Alignment (Word-Level) | `whisperX` — optional, Phase 2 |
 | Audio-Extraktion | `ffmpeg` via subprocess |
+| API | `FastAPI` + `uvicorn` (Port 8511) |
+| Frontend | React + Vite (Port 5173) — kein Framework, plain CSS |
 | CLI | `typer` |
-| UI | `streamlit` (Port 8510, `start_ui.bat`) |
 | Datenmodell | `pydantic` (Word, Segment, Transcript) |
 | GPU | CUDA (Windows/Nvidia) · Metal/CPU (macOS) · Auto-Detect, Fallback CPU |
 | Tests | `pytest` |
@@ -54,23 +56,28 @@ subscribe/
 ├── cli.py              # Typer-Entry-Point: subscribe run <file> [--lang] [--format] [--model]
 ├── audio_extract.py    # ffmpeg-Wrapper: Video → wav (16kHz mono)
 ├── transcribe.py       # faster-whisper Aufruf, Device-Detection
-├── align.py            # Optional: whisperX Forced Alignment (Phase 2)
 ├── models.py           # Pydantic: Word, Segment, Transcript
 ├── config.py           # Settings laden (Modellgröße, Default-Sprache, Pfade)
-├── export/
-│   ├── srt.py
-│   ├── vtt.py          # Sprint 2
-│   └── json_export.py  # Sprint 2
-└── utils/
-    ├── device.py       # CUDA → MPS → CPU, mit --device Override
-    └── logging.py
-ui.py                   # Streamlit-UI
-start_ui.bat            # UI starten (Doppelklick)
-tests/
+├── export/srt.py
+└── utils/device.py     # CUDA → MPS → CPU, mit --device Override
+api/
+├── server.py           # FastAPI App + CORS
+├── models.py           # Request/Response Schemas
+└── routes/
+    ├── health.py       # GET /health
+    └── transcribe.py   # POST /transcribe (multipart)
+frontend/src/
+├── App.jsx
+└── components/         # DropZone, Settings, ProgressLog, ResultPanel
+start.bat               # API + UI parallel starten (empfohlen)
+start_api.bat           # Nur API (Port 8511)
+start_ui.bat            # Nur Frontend-Dev-Server (Port 5173)
 ```
 
 **Datenfluss:**
-`Mediendatei → ffmpeg (audio_extract.py) → faster-whisper (transcribe.py) → Transcript (models.py) → Export`
+`Mediendatei → POST /transcribe → ffmpeg → faster-whisper → Transcript → SRT → FileResponse`
+
+**Premiere-Plugin:** REST-API auf Port 8511 ist direkt via `fetch()` aus einem CEP-Panel ansprechbar — kein Umbau nötig.
 
 ---
 
@@ -78,12 +85,17 @@ tests/
 
 ```bash
 # Einmalig installieren
-pip install -e .   # venv: C:\Users\chris\projects\venv\Scripts\pip
+pip install -e .           # venv: C:\Users\chris\projects\venv\Scripts\pip
+cd frontend && npm install
 
-# UI starten (empfohlen)
-start_ui.bat       # öffnet http://localhost:8510
+# Starten (empfohlen: beides zusammen)
+start.bat                  # öffnet API auf :8511, UI auf http://localhost:5173
 
-# CLI
+# Einzeln
+start_api.bat              # nur FastAPI
+start_ui.bat               # nur React Dev-Server
+
+# CLI (alternativ zur UI)
 subscribe run input.mp4 --lang de --format srt
 subscribe run input.mp4 --lang de --format srt --model large-v3
 
@@ -102,6 +114,7 @@ pytest tests/test_export_srt.py::test_fmt_time
 - **Keine globalen Konstanten für Pfade** — alles über `config.py` / CLI-Parameter
 - **Keine hardcodierte Modellgröße** — Default `medium`, Override per `--model tiny|base|small|medium|large-v3`
 - **Logging statt print** (`logging`-Modul, Level konfigurierbar)
+- API-Routen: Fehler immer als `HTTPException` mit klarer `detail`-Message
 - Jede neue Exportfunktion bekommt einen Unit-Test mit einer festen Beispiel-Transcript-Fixture
 
 ---
