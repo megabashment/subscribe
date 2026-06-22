@@ -1,0 +1,31 @@
+# SubScribe config.yaml — kopieren nach config.yaml und anpassen
+# Alle Werte sind optional — ohne Datei gelten die Defaults
+
+model_size: medium        # tiny | base | small | medium | large-v3
+language: auto            # auto | de | en | fr | es | it | ...
+device: auto              # auto | cuda | mps | cpu
+output_dir: .             # Ausgabeverzeichnis für CLI-Exporte
+format: srt               # srt | vtt | json
+word_timestamps: true     # Wort-genaue Timestamps (Sprint 3)
+
+# Decoding-Qualität (Phase 1) — alle optional
+beam_size: 5                          # 1 = schnell/greedy, 5 = Standard, 10 = genauer (langsamer)
+initial_prompt: null                  # Kontext/Fachbegriffe/Eigennamen, z.B. "Kubernetes, Grafana, Prometheus"
+condition_on_previous_text: true      # false reduziert "Loop"-Halluzinationen bei schwierigem Audio
+no_speech_threshold: 0.6              # höher (z.B. 0.7) = weniger Text in Stille
+compression_ratio_threshold: 2.4     # höher = toleranter gegen repetitiven Output
+log_prob_threshold: -1.0             # Segmente mit niedrigerer Konfidenz werden verworfen
+hallucination_silence_threshold: 2.0  # entfernt Text über langen Stillen (nur mit word_timestamps); null = aus
+
+# Audio-Preprocessing (Phase 2) — lokale ffmpeg-Filter
+normalize_audio: true     # Lautstärke normalisieren (loudnorm) + Sprachband-Filter — hilft bei leisem Material
+denoise_audio: false      # FFT-Entrauschung (afftdn) — nur bei verrauschtem Audio aktivieren
+
+# VAD-Feintuning (Phase 3) — nur wirksam wenn VAD aktiv
+vad_threshold: 0.5        # 0..1, niedriger = empfindlicher (mehr als Sprache gewertet)
+vad_min_silence_ms: 500   # Mindest-Stille (ms), bevor ein Segment endet
+vad_speech_pad_ms: 300    # Pre-/Post-Roll (ms) um Sprache — verhindert abgeschnittene Wortanfänge
+
+# Forced Alignment (Phase 4) — optional, benötigt: pip install -r requirements-align.txt
+align: false              # whisperX wav2vec2-Alignment für präzisere Wortgrenzen
+align_device: null        # null = wie Whisper; "cpu" spart VRAM (langsamer)

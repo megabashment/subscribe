@@ -1,12 +1,18 @@
+import { IconDownload, IconAlertCircle, IconLanguage, IconList, IconFileText } from '@tabler/icons-react'
 import styles from './ResultPanel.module.css'
 
 export default function ResultPanel({ result, error, onReset }) {
   if (error) {
     return (
       <div className={`${styles.wrap} ${styles.errWrap}`}>
-        <div className={styles.errTitle}>Fehler</div>
-        <div className={styles.errMsg}>{error}</div>
-        <button className={styles.resetBtn} onClick={onReset}>Nochmal versuchen</button>
+        <div className={styles.errHeader}>
+          <IconAlertCircle size={16} stroke={2} />
+          <span>Fehler</span>
+        </div>
+        <p className={styles.errMsg}>{error}</p>
+        <button className={styles.secondaryBtn} onClick={onReset}>
+          Erneut versuchen
+        </button>
       </div>
     )
   }
@@ -26,22 +32,28 @@ export default function ResultPanel({ result, error, onReset }) {
     <div className={styles.wrap}>
       <div className={styles.metrics}>
         <div className={styles.metric}>
-          <span className={styles.val}>{result.language.toUpperCase()}</span>
-          <span className={styles.key}>Sprache</span>
+          <IconLanguage size={14} stroke={1.5} className={styles.metricIcon} />
+          <span className={styles.metricVal}>{result.language.toUpperCase()}</span>
+          <span className={styles.metricKey}>Sprache</span>
         </div>
         <div className={styles.metric}>
-          <span className={styles.val}>{result.segments}</span>
-          <span className={styles.key}>Segmente</span>
+          <IconList size={14} stroke={1.5} className={styles.metricIcon} />
+          <span className={styles.metricVal}>{result.segments}</span>
+          <span className={styles.metricKey}>Segmente</span>
         </div>
         <div className={styles.metric}>
-          <span className={styles.val}>{result.format.toUpperCase()}</span>
-          <span className={styles.key}>Format</span>
+          <IconFileText size={14} stroke={1.5} className={styles.metricIcon} />
+          <span className={styles.metricVal}>{result.format.toUpperCase()}</span>
+          <span className={styles.metricKey}>Format</span>
         </div>
       </div>
-      <button className={styles.dlBtn} onClick={download}>
-        ⬇ {result.filename} herunterladen
+      <button className={styles.primaryBtn} onClick={download}>
+        <IconDownload size={15} stroke={2} />
+        {result.filename} herunterladen
       </button>
-      <button className={styles.resetBtn} onClick={onReset}>Neue Datei</button>
+      <button className={styles.secondaryBtn} onClick={onReset}>
+        Neue Datei
+      </button>
     </div>
   )
 }

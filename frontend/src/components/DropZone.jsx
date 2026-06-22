@@ -1,7 +1,13 @@
-import { useRef, useState } from 'react'
+import { useState, useRef } from 'react'
+import { IconUpload, IconFileMusic, IconVideo, IconX } from '@tabler/icons-react'
 import styles from './DropZone.module.css'
 
-const ACCEPTED = ['mp4','mkv','mov','avi','mp3','wav','m4a','flac']
+const ACCEPTED = ['mp4','mkv','mov','avi','mp3','wav','m4a','flac','webm','ogg']
+
+function fmtSize(bytes) {
+  if (bytes < 1_048_576) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${(bytes / 1_048_576).toFixed(1)} MB`
+}
 
 export default function DropZone({ file, onFile }) {
   const [dragging, setDragging] = useState(false)
@@ -14,10 +20,7 @@ export default function DropZone({ file, onFile }) {
     if (f) onFile(f)
   }
 
-  function handleChange(e) {
-    const f = e.target.files[0]
-    if (f) onFile(f)
-  }
+  const isVideo = file?.type?.startsWith('video/')
 
   return (
     <div
@@ -25,32 +28,38 @@ export default function DropZone({ file, onFile }) {
       onDragOver={e => { e.preventDefault(); setDragging(true) }}
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}
-      onClick={() => inputRef.current.click()}
+      onClick={() => !file && inputRef.current.click()}
     >
       <input
         ref={inputRef}
         type="file"
         accept={ACCEPTED.map(e => `.${e}`).join(',')}
         style={{ display: 'none' }}
-        onChange={handleChange}
+        onChange={e => e.target.files[0] && onFile(e.target.files[0])}
       />
+
       {file ? (
-        <div className={styles.fileInfo}>
-          <span className={styles.icon}>🎬</span>
-          <div>
-            <div className={styles.filename}>{file.name}</div>
-            <div className={styles.meta}>{(file.size / 1_048_576).toFixed(1)} MB</div>
+        <div className={styles.fileRow}>
+          <span className={styles.fileIcon}>
+            {isVideo ? <IconVideo size={18} stroke={1.5} /> : <IconFileMusic size={18} stroke={1.5} />}
+          </span>
+          <div className={styles.fileMeta}>
+            <span className={styles.fileName}>{file.name}</span>
+            <span className={styles.fileSize}>{fmtSize(file.size)}</span>
           </div>
           <button
-            className={styles.clear}
+            className={styles.clearBtn}
             onClick={e => { e.stopPropagation(); onFile(null) }}
-          >✕</button>
+            title="Datei entfernen"
+          >
+            <IconX size={13} stroke={2} />
+          </button>
         </div>
       ) : (
         <div className={styles.empty}>
-          <span className={styles.icon}>🎙️</span>
-          <div className={styles.label}>Datei hierher ziehen</div>
-          <div className={styles.sub}>oder klicken zum Auswählen · {ACCEPTED.join(', ')}</div>
+          <IconUpload size={26} stroke={1.5} className={styles.uploadIcon} />
+          <span className={styles.label}>Datei hierher ziehen</span>
+          <span className={styles.sub}>oder klicken · {ACCEPTED.join(', ')}</span>
         </div>
       )}
     </div>

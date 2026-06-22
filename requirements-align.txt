@@ -1,0 +1,14 @@
+# Optional: phoneme-accurate forced alignment via whisperX (Phase 4)
+# Läuft komplett lokal — lädt pro Sprache ein wav2vec2-Alignment-Modell.
+#
+# Einmalig installieren (zusätzlich zu requirements-gpu.txt für CUDA):
+#   pip install -r requirements-align.txt
+#
+# Hinweis VRAM: Das Alignment-Modell läuft zusätzlich zum Whisper-Modell.
+# Auf 8 GB (GTX 1070) ggf. Whisper 'medium' statt 'large-v3' nutzen, oder
+# Alignment auf CPU laufen lassen (align_device=cpu).
+#
+# Ohne dieses Paket fällt subscribe sauber auf Whispers eigene
+# Word-Timestamps zurück (kein Crash).
+
+whisperx

@@ -24,39 +24,27 @@ Prio: 🔴 hoch · 🟡 mittel · ⚪ niedrig/später
 - CLI + API: alle drei Formate vollständig aktiviert, Fallbacks entfernt
 - DoD: alle drei Formate via UI und CLI wählbar, 27 Tests grün
 
-### Sprint 2.5 — Review/Edit-UI (nach Sprint 2, vor Sprint 3)
-Ziel: Transkriptions-Ergebnis prüfen und korrigieren bevor Export.
+### ✅ Sprint 2.5 — Review/Edit-UI
+- `POST /export` (`api/routes/export.py`) — nimmt editierte Cues, serverseitige Validierung (Overlap, start<end, Encoding)
+- `POST /transcribe/cues` — gibt JSON-Cues zurück statt direktem Download
+- `Player.jsx` — Video/Audio-Player mit `timeupdate`-Sync
+- `CueEditor.jsx` — inline editierbare Cue-Liste, Zeitfelder, Löschen/Splitten/Mergen, Zeichenzähler
+- App-Flow: Upload → Transkription → Editor → Export
+- DoD: 37 Tests grün, Overlap/Validierungsfehler blocken Export
 
-**Player-View**
-- `<video>`/`<audio>`-Element, kein Wellenform-Player
-- Aktueller Cue wird während Wiedergabe hervorgehoben (Timestamp-Sync via `timeupdate`)
-- Klick auf Cue → Player springt zur Startzeit
+### ✅ Sprint 3 — Word-Level-Timestamps
+- `word_timestamps=True` als Default in `transcribe.py`
+- `--word-level/--no-word-level` Flag in CLI
+- `word_level: bool = Form(True)` in API-Routen
+- `word_timestamps` als Settings-Feld in `config.py`
+- DoD: Words werden in Transcript-Modell befüllt, JSON-Export enthält Words mit Konfidenz
 
-**Cue-Liste (editierbar)**
-- Start, Ende, Text inline editierbar, kein Modal
-- Zeitfelder validiert: Start < Ende, kein Overlap mit Nachbar-Cue, Live-Fehleranzeige
-- Text mehrzeilig, Zeichenzähler/Zeile (42 Richtwert, nicht hart blocken)
-- Cue löschen / splitten / mergen
-
-**Export**
-- `POST /export` in `api/routes/export.py` — nimmt editierte Cues entgegen, läuft serverseitige SRT/VTT-Validierung (Sequenznummern, Start < Ende, kein Overlap, Encoding)
-- Frontend blockiert "Speichern" bei Overlap-Fehler, warnt bei Abweichung vom Whisper-Original
-- Kein Auto-Save — explizites "Speichern" persistiert
-
-**Verifikation:** Export in VLC öffnen. Edge Cases: leerer Cue-Text, Overlap vor Speichern, Sonderzeichen.
-
-**Neue API-Endpunkte:**
-- `POST /export` → nimmt `{cues: [...], format: "srt"|"vtt"|"json"}` → FileResponse
-
-### Sprint 3 — Word-Level-Precision (whisperX)
-- Forced Alignment optional (`--word-level` Flag, `word_timestamps=True` in transcribe.py)
-- DoD: Wort-Timestamps nachweislich präziser als Segment-Approximation
-
-### Sprint 4 — Batch & Komfort
-- Batch-Verarbeitung ganzer Ordner (CLI + API)
-- Fortschrittsanzeige im Frontend (SSE oder Polling)
-- Konfigurierbare Defaults via `config.yaml`
-- DoD: Ordner mit 5 Dateien → 5 .srt ohne manuelles Eingreifen
+### ✅ Sprint 4 — Batch & Komfort
+- `subscribe batch <folder>` CLI-Befehl (mit `--glob`, `--output`, `--format`, `--word-level`)
+- `POST /batch` API-Endpunkt mit SSE-Fortschrittsevents (`start`, `progress`, `done`)
+- `config.yaml.example` als Vorlage für Defaults
+- `config.py`: `word_timestamps` und `format` als konfigurierbare Felder
+- DoD: 5 Dateien im Ordner → 5 Exports ohne manuelles Eingreifen
 
 ---
 
@@ -75,14 +63,11 @@ Ziel: Transkriptions-Ergebnis prüfen und korrigieren bevor Export.
 
 ## Offen
 
-- 🔴 Review/Edit-UI — Sprint 2.5 (nächster Sprint)
-- 🟡 SSE/Polling für Fortschrittsanzeige im Frontend — Sprint 4
-- 🟡 Batch-Modus (Ordner) — Sprint 4
-- ⚪ whisperX Forced Alignment — Sprint 3, erst evaluieren ob Mehrwert für den Use-Case
 - ⚪ Speaker-Diarization (pyannote) — eigene Abhängigkeit, separat bewerten
 - ⚪ Übersetzungsmodus (Whisper „translate") — kein MVP-Feature
 - ⚪ Premiere CEP-Plugin — REST-API auf :8511 ist bereits kompatibel, Plugin ist dünner Client
 - ⚪ `.ass`-Format
+- ⚪ whisperX Forced Alignment — evaluieren ob Mehrwert über `word_timestamps=True` hinaus
 
 ## Verworfen
 

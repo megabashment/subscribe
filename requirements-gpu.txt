@@ -1,0 +1,10 @@
+# GPU-Beschleunigung via CUDA (optional, aber empfohlen)
+# Einmalig installieren:
+#   pip install -r requirements-gpu.txt --index-url https://download.pytorch.org/whl/cu121
+#
+# Für CUDA 11.8 statt 12.1:
+#   pip install -r requirements-gpu.txt --index-url https://download.pytorch.org/whl/cu118
+#
+# Ohne torch läuft subscribe auf CPU (langsamer, aber funktional).
+
+torch

@@ -62,6 +62,22 @@ Architekturentscheidungen mit Begründung (ADR-Format, schlank).
 
 ---
 
+## ADR-008: word_timestamps=True als Default
+
+**Entscheidung:** `word_timestamps=True` ist der Default in `transcribe()`, ausschaltbar via `--no-word-level`.
+
+**Begründung:** Word-Level-Timestamps kosten kaum extra (faster-whisper berechnet sie ohnehin intern). Sie werden vom Editor (Sprint 2.5) für zukünftige Wort-genaue Cue-Splits gebraucht und vom JSON-Export bereits ausgegeben. Opt-out statt Opt-in vermeidet, dass User sie vergessen zu aktivieren.
+
+---
+
+## ADR-009: Batch-SSE statt Polling
+
+**Entscheidung:** `POST /batch` streamt Server-Sent Events (`start`, `progress`, `done`) statt Polling.
+
+**Begründung:** SSE ist HTTP-nativ, funktioniert ohne WebSocket-Handshake, und React kann es mit `EventSource` oder `fetch`+`getReader()` konsumieren. Bei langen Batch-Jobs (5+ Dateien × mehrere Minuten) ist Polling mit sinnvollem Intervall schlechter: entweder zu häufig (CPU-Overhead) oder zu selten (schlechte UX). SSE gibt exaktes Per-Datei-Feedback ohne Overhead.
+
+---
+
 ## Offene Fragen
 
-- `config.yaml` für Defaults — Tendenz YAML, Entscheidung in Sprint 4
+*(keine offenen ADRs mehr — alle Sprints abgeschlossen)*

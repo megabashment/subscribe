@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > Lokales CLI-Tool + Web-App zur automatischen Transkription von Mediendateien mit Word-Level-Timestamps und Export in gängige Untertitelformate.
 
-**Status:** Sprint 2 abgeschlossen — VTT/JSON-Export, SRT-BOM-Fix, 27 Tests grün
+**Status:** Sprint 4 abgeschlossen — alle Sprints fertig, Backlog leer, 37 Tests grün
 
 ---
 

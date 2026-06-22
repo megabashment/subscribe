@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module="huggingface_hub"
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import health, transcribe
+from api.routes import health, transcribe, export, batch, models, stats
 from subscribe.utils.logging import setup_logging
 
 setup_logging("INFO")
@@ -27,5 +27,9 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(transcribe.router)
+app.include_router(export.router)
+app.include_router(batch.router)
+app.include_router(models.router)
+app.include_router(stats.router)
 
 logger.info("SubScribe API ready")
