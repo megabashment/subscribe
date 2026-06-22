@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > Lokales CLI-Tool zur automatischen Transkription von Mediendateien mit Word-Level-Timestamps und Export in gängige Untertitelformate.
 
-**Status:** Konzept / Sprint 0 — noch kein Code, nur Planung
+**Status:** Sprint 1 abgeschlossen — MVP-Transkription + Streamlit-UI lauffähig
 
 ---
 
@@ -12,9 +12,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Mediendateien (Video/Audio) lokal transkribieren — Spracherkennung, Wort-für-Wort-Timestamps, Export als `.srt`/`.vtt`/`.json`, ohne Cloud-Dienste.
 
-**Out of Scope (Phase 1):** Kein Webservice, keine GUI, keine Live-Transkription, keine Übersetzung.
+**Out of Scope (Phase 1):** Kein Webservice, keine Live-Transkription, keine Übersetzung.
 
-**MVP-Kriterium:** `mp4/mkv/mp3/wav` rein → valide `.srt` raus, die in VLC ohne Nachbearbeitung korrekt läuft. Plus strukturierte Wortliste (JSON) als Nebenprodukt.
+**MVP-Kriterium:** `mp4/mkv/mp3/wav` rein → valide `.srt` raus, die in VLC ohne Nachbearbeitung korrekt läuft.
+
+---
+
+## System-Abhängigkeiten
+
+Diese müssen **vor** dem ersten `subscribe run` auf dem System installiert sein:
+
+| Tool | Wann nötig | Installation |
+|---|---|---|
+| `ffmpeg` | Sprint 0 (Setup) | `winget install Gyan.FFmpeg` |
+| CUDA Toolkit | optional, für GPU-Beschleunigung | nvidia.com |
+
+**ffmpeg muss im PATH sein.** Nach `winget`-Installation einmalig Shell neu starten.
 
 ---
 
@@ -26,10 +39,11 @@ Mediendateien (Video/Audio) lokal transkribieren — Spracherkennung, Wort-für-
 | Alignment (Word-Level) | `whisperX` — optional, Phase 2 |
 | Audio-Extraktion | `ffmpeg` via subprocess |
 | CLI | `typer` |
+| UI | `streamlit` (Port 8510, `start_ui.bat`) |
 | Datenmodell | `pydantic` (Word, Segment, Transcript) |
 | GPU | CUDA (Windows/Nvidia) · Metal/CPU (macOS) · Auto-Detect, Fallback CPU |
 | Tests | `pytest` |
-| Paketverwaltung | `uv` bevorzugt, sonst `venv` + `pip` |
+| Paketverwaltung | `venv` + `pip` (`C:\Users\chris\projects\venv\`) |
 
 ---
 
@@ -45,35 +59,38 @@ subscribe/
 ├── config.py           # Settings laden (Modellgröße, Default-Sprache, Pfade)
 ├── export/
 │   ├── srt.py
-│   ├── vtt.py
-│   └── json_export.py
+│   ├── vtt.py          # Sprint 2
+│   └── json_export.py  # Sprint 2
 └── utils/
     ├── device.py       # CUDA → MPS → CPU, mit --device Override
     └── logging.py
+ui.py                   # Streamlit-UI
+start_ui.bat            # UI starten (Doppelklick)
 tests/
 ```
 
 **Datenfluss:**
-`Mediendatei → ffmpeg → faster-whisper → [whisperX] → Transcript (pydantic) → Export`
+`Mediendatei → ffmpeg (audio_extract.py) → faster-whisper (transcribe.py) → Transcript (models.py) → Export`
 
 ---
 
 ## Befehle
 
 ```bash
-# Installieren (uv bevorzugt)
-uv pip install -r requirements.txt
-# oder
-pip install -r requirements.txt
+# Einmalig installieren
+pip install -e .   # venv: C:\Users\chris\projects\venv\Scripts\pip
 
-# CLI starten
-python -m subscribe run input.mp4 --lang de --format srt
-python -m subscribe run input.mp4 --lang de --format json --model large-v3
+# UI starten (empfohlen)
+start_ui.bat       # öffnet http://localhost:8510
+
+# CLI
+subscribe run input.mp4 --lang de --format srt
+subscribe run input.mp4 --lang de --format srt --model large-v3
 
 # Tests
 pytest
-pytest tests/test_export.py          # einzelne Datei
-pytest tests/test_export.py::test_srt_basic  # einzelne Funktion
+pytest tests/test_export_srt.py
+pytest tests/test_export_srt.py::test_fmt_time
 ```
 
 ---

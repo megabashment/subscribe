@@ -8,9 +8,10 @@ Prio: 🔴 hoch · 🟡 mittel · ⚪ niedrig/später
 ## Sprints
 
 ### ✅ Sprint 0 — Setup
-- Projektstruktur, venv/uv, ffmpeg-Check, CLAUDE.md/BACKLOG.md/DESIGN.md
+- Projektstruktur, venv, CLAUDE.md/BACKLOG.md/DESIGN.md
+- **ffmpeg installieren** (`winget install Gyan.FFmpeg`) — System-Voraussetzung für Audio-Extraktion
 - Device-Detection-Modul (cuda/mps/cpu)
-- DoD: `subscribe --help` läuft, Device wird korrekt erkannt und geloggt
+- DoD: `subscribe --help` läuft, ffmpeg im PATH, Device wird korrekt erkannt und geloggt
 
 ### ✅ Sprint 1 — MVP Transkription
 - Audio-Extraktion aus Video (ffmpeg)
