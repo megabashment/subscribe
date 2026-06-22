@@ -1,0 +1,168 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+}
+
+.globalError {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: var(--error);
+  font-size: 12px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 2px;
+}
+
+/* ── Cue card ── */
+.cue {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 9px 11px;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.cue.active {
+  border-color: var(--accent);
+  background: rgba(124, 106, 247, 0.06);
+}
+
+.cue.hasError {
+  border-color: rgba(248, 113, 113, 0.5);
+}
+
+/* ── Cue header ── */
+.cueHeader {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 7px;
+}
+
+.cueNum {
+  color: var(--text-muted);
+  font-size: 11px;
+  min-width: 18px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.timeInput {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: monospace;
+  font-size: 11px;
+  padding: 3px 5px;
+  width: 98px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.timeInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.arrow {
+  color: var(--border);
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.seekBtn {
+  background: var(--accent);
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  padding: 4px 7px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.seekBtn:hover { opacity: 0.8; }
+
+.actions {
+  margin-left: auto;
+  display: flex;
+  gap: 3px;
+}
+
+.actions button {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 6px;
+  display: flex;
+  align-items: center;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.actions button:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
+.deleteBtn:hover {
+  border-color: var(--error) !important;
+  color: var(--error) !important;
+}
+
+/* ── Text area ── */
+.textArea {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 6px 8px;
+  resize: vertical;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.textArea:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+/* ── Footer warnings ── */
+.cueFooter {
+  margin-top: 5px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.charWarn, .errorMsg {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.charWarn { color: #f59e0b; }
+.errorMsg { color: var(--error); }
