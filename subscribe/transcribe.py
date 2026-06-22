@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 # Type for progress callbacks: emit(event, data)
 ProgressFn = Callable[[str, dict], None]
 
+# Set after first successful model load — readable by /health
+last_compute_type: str | None = None
+
 
 def _patch_hf_download(emit: ProgressFn) -> None:
     """Monkey-patch huggingface_hub tqdm so we get download progress events."""
@@ -84,14 +87,27 @@ def transcribe(
             on_progress(event, data)
 
     effective_device = detect_device(None if device == "auto" else device)
-    compute_type = "float16" if effective_device == "cuda" else "int8"
+    _compute_candidates = ("float16", "int8_float16", "int8") if effective_device == "cuda" else ("int8",)
 
     # Patch HF download progress before model load
     fd_mod, orig_tqdm = _patch_hf_download(emit)
 
     emit("status", {"phase": "model", "msg": f"Lade Modell {model_size}…"})
-    logger.info("Loading model '%s' on %s (%s)", model_size, effective_device, compute_type)
-    model = WhisperModel(model_size, device=effective_device, compute_type=compute_type)
+    model = None
+    compute_type = _compute_candidates[-1]
+    for ct in _compute_candidates:
+        try:
+            logger.info("Loading model '%s' on %s (%s)", model_size, effective_device, ct)
+            model = WhisperModel(model_size, device=effective_device, compute_type=ct)
+            compute_type = ct
+            break
+        except ValueError:
+            logger.warning("compute_type '%s' not supported, trying next fallback", ct)
+    if model is None:
+        raise RuntimeError(f"Could not load model '{model_size}' — no supported compute_type found")
+
+    import subscribe.transcribe as _self
+    _self.last_compute_type = compute_type
 
     # Restore original tqdm
     if fd_mod and orig_tqdm:
@@ -157,7 +173,8 @@ def transcribe(
     if sound_events:
         from subscribe.sound_events import detect_events_panns, merge_events_into_transcript
         try:
-            events = detect_events_panns(audio_path, device=effective_device, on_progress=emit)
+            speech_ranges = [(s.start, s.end) for s in transcript.segments]
+            events = detect_events_panns(audio_path, device=effective_device, on_progress=emit, speech_ranges=speech_ranges)
             transcript = merge_events_into_transcript(transcript, events)
         except Exception as exc:
             logger.warning("PANNs sound event detection skipped: %s", exc)

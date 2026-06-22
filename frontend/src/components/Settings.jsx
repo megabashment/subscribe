@@ -42,15 +42,25 @@ function QualityDots({ level, max = 5 }) {
   )
 }
 
+const MODEL_NAMES = Object.keys(MODEL_META)
+
 function ModelSelect({ value, onChange, disabled, t }) {
   const [open, setOpen] = useState(false)
   const [modelInfo, setModelInfo] = useState({})
+  const [cursor, setCursor] = useState(0)
   const ref = useRef(null)
+  const panelRef = useRef(null)
 
   useEffect(() => {
     fetch(`${API}/models`).then(r => r.json()).then(setModelInfo).catch(() => {})
   }, [])
 
+  // Sync cursor to current value when opening
+  useEffect(() => {
+    if (open) setCursor(MODEL_NAMES.indexOf(value))
+  }, [open, value])
+
+  // Close on outside click
   useEffect(() => {
     function onClickOut(e) {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false)
@@ -59,19 +69,37 @@ function ModelSelect({ value, onChange, disabled, t }) {
     return () => document.removeEventListener('mousedown', onClickOut)
   }, [])
 
-  const meta = MODEL_META[value]
-  const info = modelInfo[value]
-  const panelRef = useRef(null)
+  // Keyboard navigation
+  useEffect(() => {
+    if (!open) return
+    function onKey(e) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setCursor(c => Math.min(c + 1, MODEL_NAMES.length - 1))
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setCursor(c => Math.max(c - 1, 0))
+      } else if (e.key === 'Enter') {
+        e.preventDefault()
+        onChange(MODEL_NAMES[cursor])
+        setOpen(false)
+      } else if (e.key === 'Escape' || e.key === 'Tab') {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open, cursor, onChange])
 
-  // Flip panel to right-align if it overflows the viewport
+  // Scroll focused item into view
   useEffect(() => {
     if (!open || !panelRef.current) return
-    const rect = panelRef.current.getBoundingClientRect()
-    if (rect.right > window.innerWidth - 12) {
-      panelRef.current.style.left = 'auto'
-      panelRef.current.style.right = '0'
-    }
-  }, [open])
+    const item = panelRef.current.querySelector(`[data-idx="${cursor}"]`)
+    item?.scrollIntoView({ block: 'nearest' })
+  }, [cursor, open])
+
+  const meta = MODEL_META[value]
+  const info = modelInfo[value]
 
   return (
     <div ref={ref} className={styles.modelWrap}>
@@ -91,42 +119,34 @@ function ModelSelect({ value, onChange, disabled, t }) {
 
       {open && (
         <div className={styles.panel} ref={panelRef}>
-          {Object.entries(MODEL_META).map(([name, m]) => {
+          {Object.entries(MODEL_META).map(([name, m], idx) => {
             const mi = modelInfo[name]
             const cached = mi?.cached
             const active = name === value
+            const focused = idx === cursor
             const lm = t.modelMeta[name] || {}
             return (
               <div
                 key={name}
-                className={`${styles.item} ${active ? styles.itemActive : ''}`}
+                data-idx={idx}
+                className={`${styles.item} ${active ? styles.itemActive : ''} ${focused && !active ? styles.itemFocused : ''}`}
                 onClick={() => { onChange(name); setOpen(false) }}
+                onMouseEnter={() => setCursor(idx)}
               >
-                {/* Left: name + quality */}
-                <div className={styles.itemLeft}>
+                <div className={styles.itemMain}>
                   <div className={styles.itemNameRow}>
                     <span className={styles.itemName}>{name}</span>
                     {m.recommended && <span className={styles.rec}><IconStar size={9} /> {t.recommended}</span>}
+                    {cached
+                      ? <span className={styles.cachedPill}><IconCircleCheck size={10} /> {t.localPill}</span>
+                      : <span className={styles.dlPill}><IconCircleArrowDown size={10} /> {m.size} GB</span>
+                    }
                   </div>
-                  <QualityDots level={m.quality} />
-                </div>
-
-                {/* Center: speed + use-case */}
-                <div className={styles.itemCenter}>
-                  <span className={styles.speed}><IconBolt size={11} />{m.speed}</span>
-                  <span className={styles.useCase}>{lm.use}</span>
-                </div>
-
-                {/* Right: pros/cons + cache badge */}
-                <div className={styles.itemRight}>
-                  <div className={styles.procons}>
-                    {(lm.pros || []).map(p => <div key={p} className={styles.pro}>+ {p}</div>)}
-                    {(lm.cons || []).map(c => <div key={c} className={styles.con}>– {c}</div>)}
+                  <div className={styles.itemMeta}>
+                    <QualityDots level={m.quality} />
+                    <span className={styles.speed}><IconBolt size={10} />{m.speed}</span>
+                    <span className={styles.useCase}>{lm.use}</span>
                   </div>
-                  {cached
-                    ? <span className={styles.cachedPill}><IconCircleCheck size={11} /> {t.localPill}</span>
-                    : <span className={styles.dlPill}><IconCircleArrowDown size={11} /> {m.size} GB</span>
-                  }
                 </div>
               </div>
             )

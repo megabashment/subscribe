@@ -171,39 +171,32 @@
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  /* wide enough to show all 3 columns; clamp so it never overflows viewport */
-  width: clamp(420px, 60vw, 620px);
+  right: 0;
+  min-width: 260px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
   z-index: 200;
-  overflow: hidden;
+  overflow-y: auto;
+  max-height: 340px;
   box-shadow: 0 12px 40px rgba(0,0,0,0.55);
 }
 
 /* ── Each model row ── */
 .item {
-  display: grid;
-  grid-template-columns: 110px 1fr 180px;
-  gap: 12px;
-  padding: 11px 14px;
+  padding: 10px 14px;
   cursor: pointer;
   border-bottom: 1px solid var(--border);
   transition: background 0.1s;
-  align-items: start;
 }
 
 .item:last-child { border-bottom: none; }
 .item:hover { background: var(--surface2); }
 .itemActive { background: rgba(124, 106, 247, 0.1); }
 .itemActive:hover { background: rgba(124, 106, 247, 0.14); }
+.itemFocused { background: var(--surface2); }
 
-/* Left column */
-.itemLeft {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
+.itemMain { display: flex; flex-direction: column; gap: 5px; }
 
 .itemNameRow {
   display: flex;
@@ -229,6 +222,13 @@
   letter-spacing: 0.04em;
 }
 
+.itemMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 /* Quality dots */
 .dots { display: flex; gap: 3px; }
 .dotOn, .dotOff {
@@ -239,17 +239,10 @@
 .dotOn  { background: var(--accent); }
 .dotOff { background: var(--border); }
 
-/* Center column */
-.itemCenter {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 .speed {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
@@ -259,26 +252,6 @@
   font-size: 11px;
   color: var(--text-muted);
   line-height: 1.4;
-}
-
-/* Right column */
-.itemRight {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-}
-
-.procons { text-align: right; }
-
-.pro {
-  font-size: 10px;
-  color: #34d399;
-  line-height: 1.6;
-}
-
-.con {
-  font-size: 10px;
-  color: #fb923c;
-  line-height: 1.6;
+  flex: 1;
+  min-width: 0;
 }

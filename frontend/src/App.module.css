@@ -65,9 +65,13 @@
 .flagActive  { opacity: 1; }
 .flagInactive { opacity: 0.45; font-size: 11px; }
 
-.online  { color: var(--success); border-color: rgba(52,211,153,0.3); }
-.offline { color: var(--error);   border-color: rgba(248,113,113,0.3); }
-.checking { color: var(--text-muted); }
+.online      { color: var(--success); border-color: rgba(52,211,153,0.3); }
+.offline     { color: var(--error);   border-color: rgba(248,113,113,0.3); }
+.checking    { color: var(--text-muted); }
+/* compute_type colour coding */
+.pillFloat16 { color: #34d399; border-color: rgba(52,211,153,0.35); }
+.pillInt8f16 { color: #fbbf24; border-color: rgba(251,191,36,0.35); }
+.pillInt8gpu { color: #fb923c; border-color: rgba(251,146,60,0.35); }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spin { animation: spin 1s linear infinite; }

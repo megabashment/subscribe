@@ -92,34 +92,37 @@ def normalise_whisper_tokens(transcript: Transcript) -> Transcript:
 
 # AudioSet class → (German bracket label, confidence threshold)
 _PANNS_MAP: dict[str, tuple[str, float]] = {
-    'Laughter':             ('[Lachen]',   0.50),
-    'Crying, sobbing':      ('[Weinen]',   0.45),
-    'Screaming':            ('[Schreien]', 0.50),
-    'Groan':                ('[Stöhnen]',  0.45),
-    'Sigh':                 ('[Seufzen]',  0.45),
-    'Cough':                ('[Husten]',   0.55),
-    'Sneeze':               ('[Niesen]',   0.60),
-    'Applause':             ('[Applaus]',  0.55),
-    'Music':                ('[Musik]',    0.65),
-    'Whistling':            ('[Pfeifen]',  0.60),
-    'Whimper':              ('[Wimmern]',  0.50),
-    'Baby cry, infant cry': ('[Weinen]',   0.50),
+    'Laughter':             ('[Lachen]',   0.70),
+    'Crying, sobbing':      ('[Weinen]',   0.70),
+    'Screaming':            ('[Schreien]', 0.72),
+    'Groan':                ('[Stöhnen]',  0.70),
+    'Sigh':                 ('[Seufzen]',  0.72),
+    'Cough':                ('[Husten]',   0.75),
+    'Sneeze':               ('[Niesen]',   0.78),
+    'Applause':             ('[Applaus]',  0.72),
+    'Music':                ('[Musik]',    0.80),
+    'Whistling':            ('[Pfeifen]',  0.75),
+    'Whimper':              ('[Wimmern]',  0.72),
+    'Baby cry, infant cry': ('[Weinen]',   0.72),
 }
 
-_MIN_EVENT_DURATION = 0.4   # seconds — shorter events are noise
+_MIN_EVENT_DURATION = 0.5   # seconds — shorter events are noise
 _MERGE_GAP          = 0.6   # seconds — gaps smaller than this merge same-label events
+_MIN_GAP_TO_SCAN    = 0.8   # seconds — speech gaps shorter than this are skipped entirely
+_MAX_GAP_TO_SCAN    = 30.0  # seconds — longer gaps are likely silence/ambient, skip them
 
 
 def detect_events_panns(
     audio_path: Path,
     device: str = 'cpu',
     on_progress: ProgressFn | None = None,
+    speech_ranges: list[tuple[float, float]] | None = None,
 ) -> list[tuple[float, float, str]]:
     """
     Run PANNs CNN14 audio tagger on audio_path.
 
-    Returns list of (start_sec, end_sec, label) for detected sound events,
-    sorted by start time. Events shorter than _MIN_EVENT_DURATION are dropped.
+    Only scans gaps between speech_ranges (if provided) — dramatically faster
+    for typical speech-heavy content. Returns list of (start_sec, end_sec, label).
 
     Raises ImportError if panns-inference or librosa are not installed.
     """
@@ -146,6 +149,7 @@ def detect_events_panns(
 
     # PANNs CNN14 was trained at 32 kHz
     audio, sr = librosa.load(str(audio_path), sr=32000, mono=True)
+    total_duration = len(audio) / sr
 
     panns_device = 'cuda' if device == 'cuda' else 'cpu'
     at = AudioTagging(checkpoint_path=None, device=panns_device)
@@ -155,28 +159,55 @@ def detect_events_panns(
     if not class_indices:
         logger.warning("PANNs: no target classes found in label list — event detection will produce no results")
 
-    window    = sr          # 1-second windows
-    hop       = sr // 2     # 0.5-second hop
-    n_hops    = max(1, (len(audio) - window) // hop)
+    # Build list of gap regions to scan (between speech segments)
+    if speech_ranges:
+        sorted_speech = sorted(speech_ranges)
+        gaps: list[tuple[float, float]] = []
+        prev_end = 0.0
+        for seg_start, seg_end in sorted_speech:
+            gap_len = seg_start - prev_end
+            if _MIN_GAP_TO_SCAN <= gap_len <= _MAX_GAP_TO_SCAN:
+                gaps.append((prev_end, seg_start))
+            prev_end = max(prev_end, seg_end)
+        tail = total_duration - prev_end
+        if _MIN_GAP_TO_SCAN <= tail <= _MAX_GAP_TO_SCAN:
+            gaps.append((prev_end, total_duration))
+        logger.info("PANNs: scanning %d gap(s) (%.1fs total) out of %.1fs audio",
+                    len(gaps), sum(e - s for s, e in gaps), total_duration)
+    else:
+        gaps = [(0.0, total_duration)]
+
+    window = sr          # 1-second windows
+    hop    = sr // 2     # 0.5-second hop
+
+    # Count total hops for progress reporting
+    total_hops = sum(
+        max(0, int((end - start) * sr - window) // hop + 1)
+        for start, end in gaps
+    ) or 1
 
     raw: list[tuple[float, float, str, float]] = []
+    step = 0
 
-    for step, i in enumerate(range(0, len(audio) - window, hop)):
-        chunk = audio[i: i + window][None, :]
-        _, clip_out = at.inference(chunk)
-        probs = clip_out[0]
+    for gap_start, gap_end in gaps:
+        i_start = int(gap_start * sr)
+        i_end   = int(gap_end   * sr)
+        for i in range(i_start, max(i_start, i_end - window), hop):
+            chunk = audio[i: i + window][None, :]
+            _, clip_out = at.inference(chunk)
+            probs = clip_out[0]
 
-        t_start = i / sr
-        t_end   = (i + window) / sr
+            t_start = i / sr
+            t_end   = (i + window) / sr
 
-        for cls, (label, thresh) in _PANNS_MAP.items():
-            idx = class_indices.get(cls, -1)
-            if idx >= 0 and probs[idx] > thresh:
-                raw.append((t_start, t_end, label, float(probs[idx])))
+            for cls, (label, thresh) in _PANNS_MAP.items():
+                idx = class_indices.get(cls, -1)
+                if idx >= 0 and probs[idx] > thresh:
+                    raw.append((t_start, t_end, label, float(probs[idx])))
 
-        if step % 20 == 0:
-            pct = round(step / n_hops * 100)
-            emit(pct)
+            step += 1
+            if step % 10 == 0:
+                emit(round(step / total_hops * 100))
 
     # Merge consecutive windows of the same label (within _MERGE_GAP)
     merged: list[list] = []  # [start, end, label]

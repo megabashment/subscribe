@@ -247,10 +247,21 @@ export default function App() {
   const hasErrors = Object.keys(validateCuesLocal(cues)).length > 0
 
   // API status pill content
+  function computePillCls(device, computeType) {
+    if (!computeType) return styles.online          // not yet loaded — neutral green
+    if (computeType === 'float16') return styles.pillFloat16
+    if (computeType === 'int8_float16') return styles.pillInt8f16
+    if (device === 'cuda') return styles.pillInt8gpu
+    return styles.online                             // cpu int8 — neutral
+  }
   const apiPill = apiStatus === false
     ? { icon: <IconServerOff size={12} stroke={2} />, label: t.apiOffline, cls: styles.offline }
     : apiStatus
-    ? { icon: <IconServer size={12} stroke={2} />, label: apiStatus.device, cls: styles.online }
+    ? {
+        icon: <IconServer size={12} stroke={2} />,
+        label: apiStatus.compute_type ? `${apiStatus.device} · ${apiStatus.compute_type}` : apiStatus.device,
+        cls: computePillCls(apiStatus.device, apiStatus.compute_type),
+      }
     : { icon: <IconLoader2 size={12} stroke={2} className={styles.spin} />, label: '…', cls: styles.checking }
 
   return (

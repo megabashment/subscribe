@@ -6,6 +6,7 @@ class HealthResponse(BaseModel):
     status: str
     device: str
     version: str
+    compute_type: str | None = None
 
 
 class TranscribeMetadata(BaseModel):
