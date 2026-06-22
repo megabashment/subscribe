@@ -46,6 +46,22 @@ Architekturentscheidungen mit Begründung (ADR-Format, schlank).
 
 ---
 
+## ADR-006: SRT mit UTF-8 BOM, VTT ohne BOM, JSON ohne BOM
+
+**Entscheidung:** SRT wird als `utf-8-sig` geschrieben (BOM), VTT und JSON als `utf-8` (kein BOM).
+
+**Begründung:** VLC auf Windows ignoriert SRT-Dateien ohne BOM oder zeigt Umlaute falsch an. Die WebVTT-Spec schreibt explizit vor, dass kein BOM verwendet werden darf. JSON hat keine Encoding-Vorgabe, BOM würde viele Parser brechen.
+
+---
+
+## ADR-007: Review/Edit-UI als Sprint 2.5 vor whisperX
+
+**Entscheidung:** Review/Edit-UI (Player + editierbare Cue-Liste + serverseitiger Export-Endpunkt) kommt vor Word-Level-Alignment (Sprint 3).
+
+**Begründung:** Whisper-Segment-Timestamps sind gut genug für den MVP, aber Fehler kommen vor (falsche Wortgrenzen, Stille-Artefakte). Eine Edit-UI erlaubt Korrekturen ohne Roundtrip — das ist für den täglichen Gebrauch wichtiger als präzisere Timestamps, die man danach nicht mehr korrigieren kann. Außerdem: der `POST /export`-Endpunkt der Edit-UI liefert die serverseitige Validierungs-Logik, die Sprint 3 sowieso braucht.
+
+---
+
 ## Offene Fragen
 
 - `config.yaml` für Defaults — Tendenz YAML, Entscheidung in Sprint 4

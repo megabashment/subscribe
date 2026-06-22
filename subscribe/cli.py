@@ -47,6 +47,8 @@ def run(
     from subscribe.audio_extract import extract_audio
     from subscribe.transcribe import transcribe
     from subscribe.export.srt import export_srt
+    from subscribe.export.vtt import export_vtt
+    from subscribe.export.json_export import export_json
 
     input_path = Path(input_file)
     if not input_path.exists():
@@ -70,8 +72,9 @@ def run(
 
     if format == "srt":
         result = export_srt(transcript, out_path)
-    else:
-        typer.echo(f"Format '{format}' not yet implemented (Sprint 2).")
-        raise typer.Exit(code=0)
+    elif format == "vtt":
+        result = export_vtt(transcript, out_path)
+    elif format == "json":
+        result = export_json(transcript, out_path)
 
     typer.echo(f"Saved: {result}")

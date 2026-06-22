@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 > Lokales CLI-Tool + Web-App zur automatischen Transkription von Mediendateien mit Word-Level-Timestamps und Export in gängige Untertitelformate.
 
-**Status:** Sprint 1 abgeschlossen — MVP-Transkription + FastAPI + React-UI lauffähig
+**Status:** Sprint 2 abgeschlossen — VTT/JSON-Export, SRT-BOM-Fix, 27 Tests grün
 
 ---
 
@@ -58,7 +58,9 @@ subscribe/
 ├── transcribe.py       # faster-whisper Aufruf, Device-Detection
 ├── models.py           # Pydantic: Word, Segment, Transcript
 ├── config.py           # Settings laden (Modellgröße, Default-Sprache, Pfade)
-├── export/srt.py
+├── export/srt.py       # UTF-8 mit BOM (utf-8-sig)
+├── export/vtt.py       # UTF-8 ohne BOM, Dot-Separator
+├── export/json_export.py  # JSON mit Words + Konfidenz
 └── utils/device.py     # CUDA → MPS → CPU, mit --device Override
 api/
 ├── server.py           # FastAPI App + CORS
