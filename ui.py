@@ -6,7 +6,12 @@ import tempfile
 import threading
 from pathlib import Path
 
+import os
+import warnings
 import streamlit as st
+
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+warnings.filterwarnings("ignore", category=UserWarning, module="huggingface_hub")
 
 # ── Page config ─────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -72,7 +77,11 @@ if st.button("▶ Transkription starten", type="primary", use_container_width=Tr
 
     # Patch logging so messages appear in the UI
     class QueueHandler(logging.Handler):
+        _SKIP_PREFIXES = ("httpx", "huggingface_hub", "filelock", "urllib3")
+
         def emit(self, record: logging.LogRecord) -> None:
+            if record.name.startswith(self._SKIP_PREFIXES):
+                return
             log_queue.put(self.format(record))
 
     root_logger = logging.getLogger()
