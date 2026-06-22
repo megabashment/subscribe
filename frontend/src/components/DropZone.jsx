@@ -9,7 +9,7 @@ function fmtSize(bytes) {
   return `${(bytes / 1_048_576).toFixed(1)} MB`
 }
 
-export default function DropZone({ file, onFile }) {
+export default function DropZone({ file, onFile, t = {} }) {
   const [dragging, setDragging] = useState(false)
   const inputRef = useRef()
 
@@ -50,7 +50,7 @@ export default function DropZone({ file, onFile }) {
           <button
             className={styles.clearBtn}
             onClick={e => { e.stopPropagation(); onFile(null) }}
-            title="Datei entfernen"
+            title={t.dropClear || 'Remove file'}
           >
             <IconX size={13} stroke={2} />
           </button>
@@ -58,8 +58,8 @@ export default function DropZone({ file, onFile }) {
       ) : (
         <div className={styles.empty}>
           <IconUpload size={26} stroke={1.5} className={styles.uploadIcon} />
-          <span className={styles.label}>Datei hierher ziehen</span>
-          <span className={styles.sub}>oder klicken · {ACCEPTED.join(', ')}</span>
+          <span className={styles.label}>{t.dropLabel || 'Drop file here'}</span>
+          <span className={styles.sub}>{t.dropSub || 'or click to browse'} · {ACCEPTED.join(', ')}</span>
         </div>
       )}
     </div>

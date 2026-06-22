@@ -1,4 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 :root {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', monospace;
   --bg: #111113;
   --surface: #1c1c1f;
   --surface2: #26262b;
@@ -18,7 +22,7 @@
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: system-ui, 'Segoe UI', sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   min-height: 100vh;
   display: flex;

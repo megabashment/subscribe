@@ -5,12 +5,21 @@ import {
   IconCircleArrowDown,
   IconBolt,
   IconStar,
+  IconSettings2,
 } from '@tabler/icons-react'
 import styles from './Settings.module.css'
 
 const API = 'http://localhost:8511'
 
-const LANGUAGES = ['auto','de','en','fr','es','it','pl','nl','pt','ru','zh','ja']
+// Primary: auto-detect + DE/EN/ES. Optional: JP (needs large-v3 for best results).
+// All other languages Whisper detects automatically via 'auto' — no explicit listing needed.
+const LANGUAGES = [
+  { code: 'auto', label: 'Auto-detect' },
+  { code: 'en',   label: 'English' },
+  { code: 'de',   label: 'Deutsch' },
+  { code: 'es',   label: 'Español' },
+  { code: 'ja',   label: '日本語 (JP)', note: 'large-v3 recommended' },
+]
 const FORMATS = ['srt','vtt','json']
 const DEVICES = ['auto','cuda','cpu']
 const BEAM_PRESETS = [1, 5, 10]  // Schnell | Standard | Genau
@@ -128,110 +137,152 @@ function ModelSelect({ value, onChange, disabled, t }) {
   )
 }
 
-export default function Settings({ values, onChange, disabled, t }) {
+export default function Settings({ values, onChange, disabled, t = {} }) {
+  const [showAdvanced, setShowAdvanced] = useState(false)
+
   function set(key) {
     return e => onChange({ ...values, [key]: e.target.value })
   }
 
+  const hasNonDefault = values.device !== 'auto' || !values.vad || values.beamSize !== 5
+    || values.prompt || !values.normalize || values.denoise || values.align || values.soundEvents
+
   return (
     <div className={styles.bar}>
-      <label className={styles.field}>
-        <span>{t.langLabel}</span>
-        <select value={values.lang} onChange={set('lang')} disabled={disabled}>
-          {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
-        </select>
-      </label>
+      {/* ── Core settings ── */}
+      <div className={styles.coreRow}>
+        <label className={styles.field}>
+          <span>{t.langLabel}</span>
+          <select value={values.lang} onChange={set('lang')} disabled={disabled}>
+            {LANGUAGES.map(l => (
+              <option key={l.code} value={l.code}>{l.label}</option>
+            ))}
+          </select>
+          {values.lang === 'ja' && values.model !== 'large-v3' && (
+            <span className={styles.langHint}>{t.jpHint || '⚠ large-v3 recommended'}</span>
+          )}
+        </label>
 
-      <label className={styles.field}>
-        <span>{t.modelLabel}</span>
-        <ModelSelect value={values.model} onChange={m => onChange({ ...values, model: m })} disabled={disabled} t={t} />
-      </label>
+        <label className={styles.field}>
+          <span>{t.modelLabel}</span>
+          <ModelSelect value={values.model} onChange={m => onChange({ ...values, model: m })} disabled={disabled} t={t} />
+        </label>
 
-      <label className={styles.field}>
-        <span>{t.formatLabel}</span>
-        <select value={values.format} onChange={set('format')} disabled={disabled}>
-          {FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
-        </select>
-      </label>
+        <label className={styles.field}>
+          <span>{t.formatLabel}</span>
+          <select value={values.format} onChange={set('format')} disabled={disabled}>
+            {FORMATS.map(f => <option key={f} value={f}>{f.toUpperCase()}</option>)}
+          </select>
+        </label>
 
-      <label className={styles.field}>
-        <span>{t.deviceLabel}</span>
-        <select value={values.device} onChange={set('device')} disabled={disabled}>
-          {DEVICES.map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
-      </label>
-
-      <label className={`${styles.field} ${styles.toggleField}`} title={t.vadTitle}>
-        <span>{t.vadLabel}</span>
         <button
           type="button"
-          className={`${styles.toggle} ${values.vad ? styles.toggleOn : ''}`}
-          onClick={() => !disabled && onChange({ ...values, vad: !values.vad })}
+          className={`${styles.advancedToggle} ${showAdvanced ? styles.advancedOpen : ''} ${hasNonDefault ? styles.advancedDirty : ''}`}
+          onClick={() => setShowAdvanced(v => !v)}
+          title={t.advancedTitle || 'Advanced settings'}
           disabled={disabled}
         >
-          {values.vad ? t.vadOn : t.vadOff}
+          <IconSettings2 size={13} stroke={1.8} />
+          <span>{t.advanced || 'Advanced'}</span>
+          <IconChevronDown size={11} className={`${styles.chevron} ${showAdvanced ? styles.chevronOpen : ''}`} />
         </button>
-      </label>
+      </div>
 
-      <label className={styles.field} title={t.qualityTitle}>
-        <span>{t.qualityLabel}</span>
-        <select
-          value={values.beamSize}
-          onChange={e => onChange({ ...values, beamSize: Number(e.target.value) })}
-          disabled={disabled}
-        >
-          <option value={BEAM_PRESETS[0]}>{t.qualityFast}</option>
-          <option value={BEAM_PRESETS[1]}>{t.qualityStandard}</option>
-          <option value={BEAM_PRESETS[2]}>{t.qualityAccurate}</option>
-        </select>
-      </label>
+      {/* ── Advanced settings ── */}
+      {showAdvanced && (
+        <div className={styles.advancedRow}>
+          <label className={styles.field}>
+            <span>{t.deviceLabel}</span>
+            <select value={values.device} onChange={set('device')} disabled={disabled}>
+              {DEVICES.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </label>
 
-      <label className={`${styles.field} ${styles.promptField}`} title={t.promptTitle}>
-        <span>{t.promptLabel}</span>
-        <input
-          type="text"
-          value={values.prompt}
-          onChange={set('prompt')}
-          placeholder={t.promptPlaceholder}
-          disabled={disabled}
-        />
-      </label>
+          <label className={`${styles.field} ${styles.toggleField}`} title={t.vadTitle}>
+            <span>{t.vadLabel}</span>
+            <button
+              type="button"
+              className={`${styles.toggle} ${values.vad ? styles.toggleOn : ''}`}
+              onClick={() => !disabled && onChange({ ...values, vad: !values.vad })}
+              disabled={disabled}
+            >
+              {values.vad ? t.vadOn : t.vadOff}
+            </button>
+          </label>
 
-      <label className={`${styles.field} ${styles.toggleField}`} title={t.normalizeTitle}>
-        <span>{t.normalizeLabel}</span>
-        <button
-          type="button"
-          className={`${styles.toggle} ${values.normalize ? styles.toggleOn : ''}`}
-          onClick={() => !disabled && onChange({ ...values, normalize: !values.normalize })}
-          disabled={disabled}
-        >
-          {values.normalize ? t.on : t.off}
-        </button>
-      </label>
+          <label className={styles.field} title={t.qualityTitle}>
+            <span>{t.qualityLabel}</span>
+            <select
+              value={values.beamSize}
+              onChange={e => onChange({ ...values, beamSize: Number(e.target.value) })}
+              disabled={disabled}
+            >
+              <option value={BEAM_PRESETS[0]}>{t.qualityFast}</option>
+              <option value={BEAM_PRESETS[1]}>{t.qualityStandard}</option>
+              <option value={BEAM_PRESETS[2]}>{t.qualityAccurate}</option>
+            </select>
+          </label>
 
-      <label className={`${styles.field} ${styles.toggleField}`} title={t.denoiseTitle}>
-        <span>{t.denoiseLabel}</span>
-        <button
-          type="button"
-          className={`${styles.toggle} ${values.denoise ? styles.toggleOn : ''}`}
-          onClick={() => !disabled && onChange({ ...values, denoise: !values.denoise })}
-          disabled={disabled}
-        >
-          {values.denoise ? t.on : t.off}
-        </button>
-      </label>
+          <label className={`${styles.field} ${styles.promptField}`} title={t.promptTitle}>
+            <span>{t.promptLabel}</span>
+            <input
+              type="text"
+              value={values.prompt}
+              onChange={set('prompt')}
+              placeholder={t.promptPlaceholder}
+              disabled={disabled}
+            />
+          </label>
 
-      <label className={`${styles.field} ${styles.toggleField}`} title={t.alignTitle}>
-        <span>{t.alignLabel}</span>
-        <button
-          type="button"
-          className={`${styles.toggle} ${values.align ? styles.toggleOn : ''}`}
-          onClick={() => !disabled && onChange({ ...values, align: !values.align })}
-          disabled={disabled}
-        >
-          {values.align ? t.on : t.off}
-        </button>
-      </label>
+          <label className={`${styles.field} ${styles.toggleField}`} title={t.normalizeTitle}>
+            <span>{t.normalizeLabel}</span>
+            <button
+              type="button"
+              className={`${styles.toggle} ${values.normalize ? styles.toggleOn : ''}`}
+              onClick={() => !disabled && onChange({ ...values, normalize: !values.normalize })}
+              disabled={disabled}
+            >
+              {values.normalize ? t.on : t.off}
+            </button>
+          </label>
+
+          <label className={`${styles.field} ${styles.toggleField}`} title={t.denoiseTitle}>
+            <span>{t.denoiseLabel}</span>
+            <button
+              type="button"
+              className={`${styles.toggle} ${values.denoise ? styles.toggleOn : ''}`}
+              onClick={() => !disabled && onChange({ ...values, denoise: !values.denoise })}
+              disabled={disabled}
+            >
+              {values.denoise ? t.on : t.off}
+            </button>
+          </label>
+
+          <label className={`${styles.field} ${styles.toggleField}`} title={t.alignTitle}>
+            <span>{t.alignLabel}</span>
+            <button
+              type="button"
+              className={`${styles.toggle} ${values.align ? styles.toggleOn : ''}`}
+              onClick={() => !disabled && onChange({ ...values, align: !values.align })}
+              disabled={disabled}
+            >
+              {values.align ? t.on : t.off}
+            </button>
+          </label>
+
+          <label className={`${styles.field} ${styles.toggleField}`} title={t.soundEventsTitle}>
+            <span>{t.soundEventsLabel}</span>
+            <button
+              type="button"
+              className={`${styles.toggle} ${values.soundEvents ? styles.toggleOn : ''}`}
+              onClick={() => !disabled && onChange({ ...values, soundEvents: !values.soundEvents })}
+              disabled={disabled}
+            >
+              {values.soundEvents ? t.on : t.off}
+            </button>
+          </label>
+        </div>
+      )}
     </div>
   )
 }

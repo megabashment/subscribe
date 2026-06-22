@@ -1,0 +1,7 @@
+# Optional: PANNs audio event detection (Layer 2)
+# Enables detection of moaning, sighing, laughter, screaming etc.
+# CNN14 model downloads automatically on first use (~330 MB)
+#
+# Install: pip install -r requirements-soundevents.txt
+panns-inference>=0.1.0
+librosa>=0.10.0

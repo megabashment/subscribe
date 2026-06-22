@@ -100,13 +100,14 @@ export function CueEditor({ cues, activeCueId, onCuesChange, onSeek }) {
         {cues.map((cue, idx) => {
           const err = errors[cue.id]
           const isActive = cue.id === activeCueId
+          const isEvent = cue.is_event === true
           const maxLineLen = Math.max(...cue.text.split("\n").map(l => l.length))
-          const lineWarn = maxLineLen > LINE_WARN
+          const lineWarn = !isEvent && maxLineLen > LINE_WARN
 
           return (
             <div
               key={cue.id}
-              className={`${styles.cue} ${isActive ? styles.active : ""} ${err ? styles.hasError : ""}`}
+              className={`${styles.cue} ${isActive ? styles.active : ""} ${err ? styles.hasError : ""} ${isEvent ? styles.isEvent : ""}`}
               id={`cue-${cue.id}`}
             >
               <div className={styles.cueHeader}>

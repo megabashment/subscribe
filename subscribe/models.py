@@ -16,6 +16,7 @@ class Segment(BaseModel):
     end: float
     text: str
     words: list[Word] = []
+    is_event: bool = False  # True for non-speech sound events like [Lachen]
 
 
 class Transcript(BaseModel):

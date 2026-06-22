@@ -71,6 +71,7 @@ def transcribe(
     hallucination_silence_threshold: float | None = 2.0,
     align: bool = False,
     align_device: str | None = None,
+    sound_events: bool = False,
     on_progress: ProgressFn | None = None,
 ) -> Transcript:
     try:
@@ -147,6 +148,19 @@ def transcribe(
             align_device=align_device or effective_device,
             emit=emit,
         )
+
+    # Layer 1: always normalise Whisper non-speech tokens ([laughter] → [Lachen])
+    from subscribe.sound_events import normalise_whisper_tokens
+    transcript = normalise_whisper_tokens(transcript)
+
+    # Layer 2: optional PANNs audio event detection
+    if sound_events:
+        from subscribe.sound_events import detect_events_panns, merge_events_into_transcript
+        try:
+            events = detect_events_panns(audio_path, device=effective_device, on_progress=emit)
+            transcript = merge_events_into_transcript(transcript, events)
+        except Exception as exc:
+            logger.warning("PANNs sound event detection skipped: %s", exc)
 
     return transcript
 

@@ -1,17 +1,17 @@
 import { IconDownload, IconAlertCircle, IconLanguage, IconList, IconFileText } from '@tabler/icons-react'
 import styles from './ResultPanel.module.css'
 
-export default function ResultPanel({ result, error, onReset }) {
+export default function ResultPanel({ result, error, onReset, t = {} }) {
   if (error) {
     return (
       <div className={`${styles.wrap} ${styles.errWrap}`}>
         <div className={styles.errHeader}>
           <IconAlertCircle size={16} stroke={2} />
-          <span>Fehler</span>
+          <span>{t.resultError || 'Error'}</span>
         </div>
         <p className={styles.errMsg}>{error}</p>
         <button className={styles.secondaryBtn} onClick={onReset}>
-          Erneut versuchen
+          {t.resultRetry || 'Try again'}
         </button>
       </div>
     )
@@ -34,25 +34,26 @@ export default function ResultPanel({ result, error, onReset }) {
         <div className={styles.metric}>
           <IconLanguage size={14} stroke={1.5} className={styles.metricIcon} />
           <span className={styles.metricVal}>{result.language.toUpperCase()}</span>
-          <span className={styles.metricKey}>Sprache</span>
+          <span className={styles.metricKey}>{t.resultLang || 'Language'}</span>
         </div>
         <div className={styles.metric}>
           <IconList size={14} stroke={1.5} className={styles.metricIcon} />
           <span className={styles.metricVal}>{result.segments}</span>
-          <span className={styles.metricKey}>Segmente</span>
+          <span className={styles.metricKey}>{t.resultSegments || 'Segments'}</span>
         </div>
         <div className={styles.metric}>
           <IconFileText size={14} stroke={1.5} className={styles.metricIcon} />
           <span className={styles.metricVal}>{result.format.toUpperCase()}</span>
-          <span className={styles.metricKey}>Format</span>
+          <span className={styles.metricKey}>{t.resultFormat || 'Format'}</span>
         </div>
       </div>
       <button className={styles.primaryBtn} onClick={download}>
         <IconDownload size={15} stroke={2} />
-        {result.filename} herunterladen
+        {typeof t.resultDownload === 'function' ? t.resultDownload(result.format) : `Download ${result.format.toUpperCase()}`}
       </button>
+      <p className={styles.filename}>{result.filename}</p>
       <button className={styles.secondaryBtn} onClick={onReset}>
-        Neue Datei
+        {t.newFile || 'New file'}
       </button>
     </div>
   )

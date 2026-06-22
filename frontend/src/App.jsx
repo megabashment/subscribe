@@ -20,13 +20,13 @@ import styles from './App.module.css'
 import { de, en } from './i18n'
 
 const API = 'http://localhost:8511'
-const DEFAULT_SETTINGS = { lang: 'auto', model: 'medium', format: 'srt', device: 'auto', vad: true, beamSize: 5, prompt: '', normalize: true, denoise: false, align: false }
+const DEFAULT_SETTINGS = { lang: 'auto', model: 'medium', format: 'srt', device: 'auto', vad: true, beamSize: 5, prompt: '', normalize: true, denoise: false, align: false, soundEvents: false }
 
 const FLAG_DE = '🇩🇪'
 const FLAG_EN = '🇬🇧'
 
 export default function App() {
-  const [uiLang, setUiLang] = useState(() => localStorage.getItem('uiLang') || 'de')
+  const [uiLang, setUiLang] = useState(() => localStorage.getItem('uiLang') || 'en')
   const t = uiLang === 'en' ? en : de
 
   function toggleLang() {
@@ -99,6 +99,7 @@ export default function App() {
     form.append('normalize', settings.normalize)
     form.append('denoise', settings.denoise)
     form.append('align', settings.align)
+    form.append('sound_events', settings.soundEvents)
 
     try {
       // ── XHR: Upload-Fortschritt + SSE-Stream aus einer einzigen Verbindung ──
@@ -106,7 +107,8 @@ export default function App() {
       // xhr.upload.onprogress gibt Byte-genauen Upload-Fortschritt.
       let segmentCount = 0
       let audioDuration = null
-      let sseOffset = 0  // wie viele Zeichen wir im responseText schon verarbeitet haben
+      let sseOffset = 0
+      let transcribeStartTime = null
 
       await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest()
@@ -121,8 +123,16 @@ export default function App() {
           const totalMB  = (e.total  / 1_048_576).toFixed(1)
           setProgress(p => ({
             ...p, phase: 'upload',
-            msg: `${t.uploading} ${loadedMB} / ${totalMB} MB`,
+            msg: t.uploadingFile(file.name, loadedMB, totalMB),
             uploadPct: pct,
+          }))
+        }
+
+        xhr.upload.onload = () => {
+          setProgress(p => ({
+            ...p, phase: 'start',
+            msg: t.waitingForServer || 'Processing…',
+            uploadPct: 100,
           }))
         }
 
@@ -141,14 +151,30 @@ export default function App() {
 
             if (event === 'status') {
               if (data.duration) audioDuration = data.duration
-              setProgress(p => ({ ...p, phase: data.phase, msg: data.msg, duration: audioDuration }))
+              const phaseKey = `phase_${data.phase}`
+              const phaseMsg = typeof t[phaseKey] === 'function'
+                ? t[phaseKey](settings.model)
+                : (t[phaseKey] || data.msg)
+              setProgress(p => ({ ...p, phase: data.phase, msg: phaseMsg, duration: audioDuration }))
             } else if (event === 'download') {
               setProgress(p => ({ ...p, phase: 'download', msg: t.downloading, download: data }))
             } else if (event === 'segment') {
+              if (!transcribeStartTime) transcribeStartTime = Date.now()
               segmentCount++
               const pct = audioDuration ? Math.min(99, Math.round((data.end / audioDuration) * 100)) : null
+
+              let etaLabel = ''
+              if (audioDuration && data.end > 0) {
+                const elapsed = (Date.now() - transcribeStartTime) / 1000
+                if (elapsed > 0.5) {
+                  const speed = data.end / elapsed
+                  const remaining = (audioDuration - data.end) / speed
+                  if (remaining > 3) etaLabel = ` · ETA ${fmtSec(remaining)}`
+                }
+              }
+
               const timeLabel = audioDuration
-                ? ` — ${fmtSec(data.end)} / ${fmtSec(audioDuration)}`
+                ? ` — ${fmtSec(data.end)} / ${fmtSec(audioDuration)}${etaLabel}`
                 : ` — ${segmentCount} ${t.segments}`
               setProgress(p => ({
                 ...p, phase: 'transcribe',
@@ -157,7 +183,7 @@ export default function App() {
                 transcribePct: pct,
               }))
             } else if (event === 'done') {
-              setCues(data.segments)
+              setCues(data.segments.map(s => ({ ...s, is_event: s.is_event ?? false })))
               setEditorMeta({ language: data.language, duration: data.duration, filename: data.filename })
               resolve('done')
             } else if (event === 'error') {
@@ -260,7 +286,7 @@ export default function App() {
       {/* ── UPLOAD ── */}
       {view === 'upload' && (
         <>
-          <DropZone file={file} onFile={f => { setFile(f); setError(null) }} />
+          <DropZone file={file} onFile={f => { setFile(f); setError(null) }} t={t} />
           <Settings values={settings} onChange={setSettings} disabled={false} t={t} />
           {file && (
             <button className={styles.primaryBtn} onClick={runTranscription}>
@@ -334,7 +360,7 @@ export default function App() {
       {/* ── DONE ── */}
       {view === 'done' && (
         <>
-          <ResultPanel result={result} error={null} onReset={reset} />
+          <ResultPanel result={result} error={null} onReset={reset} t={t} />
           <button className={styles.ghostBtn} onClick={() => setView('editor')}>
             <IconArrowLeft size={14} stroke={2} />
             {t.backToEditor}
@@ -344,7 +370,7 @@ export default function App() {
 
       {/* ── ERROR ── */}
       {view === 'error' && (
-        <ResultPanel result={null} error={error} onReset={reset} />
+        <ResultPanel result={null} error={error} onReset={reset} t={t} />
       )}
     </div>
   )

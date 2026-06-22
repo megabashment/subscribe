@@ -113,6 +113,7 @@ async def transcribe_to_cues(
     normalize: bool = Form(True),
     denoise: bool = Form(False),
     align: bool = Form(False),
+    sound_events: bool = Form(False),
 ) -> StreamingResponse:
     """Transcribe and stream progress via SSE. Final event 'done' contains all cues."""
     if model not in SUPPORTED_MODELS:
@@ -146,6 +147,7 @@ async def transcribe_to_cues(
                 beam_size=beam_size,
                 initial_prompt=prompt or None,
                 align=align,
+                sound_events=sound_events,
                 on_progress=on_progress,
             )
             q.put(("done", {
@@ -158,6 +160,7 @@ async def transcribe_to_cues(
                         "start": seg.start,
                         "end": seg.end,
                         "text": seg.text,
+                        "is_event": seg.is_event,
                         "words": [w.model_dump() for w in seg.words],
                     }
                     for seg in transcript.segments
