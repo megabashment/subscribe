@@ -5,6 +5,7 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 
+from subscribe.audio_extract import probe_duration
 from subscribe.models import Segment, Transcript, Word
 from subscribe.utils.device import detect_device
 
@@ -96,10 +97,13 @@ def transcribe(
         fd_mod.tqdm = orig_tqdm
 
     lang_arg = None if language == "auto" else language
-    emit("status", {"phase": "audio", "msg": "Extrahiere Audio…"})
-    logger.info("Transcribing %s (lang=%s)", audio_path.name, lang_arg or "auto-detect")
 
-    emit("status", {"phase": "transcribe", "msg": "Transkribiere…"})
+    # Probe duration so the frontend can show a real progress bar
+    duration_hint = probe_duration(audio_path)
+    emit("status", {"phase": "audio", "msg": "Extrahiere Audio…", "duration": duration_hint})
+    logger.info("Transcribing %s (lang=%s, duration=%.1fs)", audio_path.name, lang_arg or "auto-detect", duration_hint or 0)
+
+    emit("status", {"phase": "transcribe", "msg": "Transkribiere…", "duration": duration_hint})
     vad_params = {
         "threshold": vad_threshold,
         "min_silence_duration_ms": vad_min_silence_ms,

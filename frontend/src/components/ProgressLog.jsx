@@ -3,10 +3,12 @@ import {
   IconSparkles,
   IconFileMusic,
   IconAlignJustified,
+  IconUpload,
 } from '@tabler/icons-react'
 import styles from './ProgressLog.module.css'
 
 const PHASE_ICONS = {
+  upload:     IconUpload,
   start:      IconSparkles,
   model:      IconSparkles,
   download:   IconDownload,
@@ -21,7 +23,14 @@ export default function ProgressLog({ running, progress, t }) {
   const phase = progress?.phase || 'start'
   const Icon = PHASE_ICONS[phase] || IconSparkles
   const dl = progress?.download
-  const segLabel = t ? `${progress?.segments} ${t.segments}` : `${progress?.segments} Segmente erkannt`
+  const uploadPct = progress?.uploadPct ?? null
+  const transcribePct = progress?.transcribePct ?? null
+
+  // Determinate bar: upload or transcribe with known duration
+  const showUploadBar = phase === 'upload' && uploadPct !== null
+  const showTranscribeBar = phase === 'transcribe' && transcribePct !== null
+  const showDeterminate = showUploadBar || showTranscribeBar
+  const determinatePct = showUploadBar ? uploadPct : transcribePct
 
   return (
     <div className={styles.wrap}>
@@ -31,7 +40,7 @@ export default function ProgressLog({ running, progress, t }) {
         <span className={styles.label}>{progress?.msg || t?.connecting || 'Connecting…'}</span>
       </div>
 
-      {/* Download progress */}
+      {/* Download progress (determinate) */}
       {phase === 'download' && dl && (
         <div className={styles.downloadRow}>
           <div className={styles.track}>
@@ -51,16 +60,24 @@ export default function ProgressLog({ running, progress, t }) {
         </div>
       )}
 
-      {/* Indeterminate bar for all other phases */}
-      {phase !== 'download' && (
-        <div className={styles.track}>
-          <div className={styles.barIndeterminate} />
+      {/* Upload or transcribe — determinate bar */}
+      {showDeterminate && (
+        <div className={styles.progressRow}>
+          <div className={styles.track}>
+            <div
+              className={styles.bar}
+              style={{ width: `${determinatePct}%`, transition: 'width 0.3s ease' }}
+            />
+          </div>
+          <span className={styles.pct}>{determinatePct}%</span>
         </div>
       )}
 
-      {/* Segment counter during transcription */}
-      {phase === 'transcribe' && progress?.segments > 0 && (
-        <div className={styles.segCount}>{segLabel}</div>
+      {/* Indeterminate bar for phases without progress info */}
+      {!showDeterminate && phase !== 'download' && (
+        <div className={styles.track}>
+          <div className={styles.barIndeterminate} />
+        </div>
       )}
     </div>
   )

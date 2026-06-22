@@ -1,11 +1,41 @@
 from __future__ import annotations
 
+import json
 import logging
 import shutil
 import subprocess
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+
+def probe_duration(path: Path) -> float | None:
+    """Return duration in seconds from a WAV file header, or via ffprobe for other formats."""
+    try:
+        if path.suffix.lower() == ".wav":
+            import wave
+            with wave.open(str(path), "rb") as wf:
+                frames = wf.getnframes()
+                rate   = wf.getframerate()
+                return frames / rate if rate else None
+    except Exception:
+        pass
+
+    if not shutil.which("ffprobe"):
+        return None
+    try:
+        result = subprocess.run(
+            ["ffprobe", "-v", "quiet", "-print_format", "json",
+             "-show_entries", "format=duration", str(path)],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode == 0:
+            data = json.loads(result.stdout)
+            dur = data.get("format", {}).get("duration")
+            return float(dur) if dur else None
+    except Exception:
+        pass
+    return None
 
 
 def _build_filter_chain(normalize: bool, denoise: bool) -> str | None:

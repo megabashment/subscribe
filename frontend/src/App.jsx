@@ -76,11 +76,17 @@ export default function App() {
     setView('upload')
   }
 
+  function fmtSec(s) {
+    const m = Math.floor(s / 60)
+    const sec = Math.floor(s % 60)
+    return `${m}:${String(sec).padStart(2, '0')}`
+  }
+
   async function runTranscription() {
     if (!file) return
     setView('running')
     setError(null)
-    setProgress({ phase: 'start', msg: t.connecting, segments: 0 })
+    setProgress({ phase: 'upload', msg: '', segments: 0, uploadPct: 0, transcribePct: 0, duration: null })
 
     const form = new FormData()
     form.append('file', file)
@@ -95,48 +101,77 @@ export default function App() {
     form.append('align', settings.align)
 
     try {
-      const res = await fetch(`${API}/transcribe/cues`, { method: 'POST', body: form })
-      if (!res.ok) {
-        const detail = await res.json().catch(() => ({ detail: res.statusText }))
-        throw new Error(detail.detail || res.statusText)
-      }
-
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buf = ''
+      // ── XHR: Upload-Fortschritt + SSE-Stream aus einer einzigen Verbindung ──
+      // responseType='text' + xhr.onprogress gibt inkrementelle SSE-Chunks.
+      // xhr.upload.onprogress gibt Byte-genauen Upload-Fortschritt.
       let segmentCount = 0
+      let audioDuration = null
+      let sseOffset = 0  // wie viele Zeichen wir im responseText schon verarbeitet haben
 
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        buf += decoder.decode(value, { stream: true })
-        const parts = buf.split('\n\n')
-        buf = parts.pop()
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest()
+        xhr.open('POST', `${API}/transcribe/cues`)
+        xhr.responseType = 'text'
 
-        for (const part of parts) {
-          const eventMatch = part.match(/^event: (\w+)/)
-          const dataMatch = part.match(/^data: (.+)/m)
-          if (!eventMatch || !dataMatch) continue
-          const event = eventMatch[1]
-          const data = JSON.parse(dataMatch[1])
+        // Upload-Fortschritt
+        xhr.upload.onprogress = e => {
+          if (!e.lengthComputable) return
+          const pct = Math.round((e.loaded / e.total) * 100)
+          const loadedMB = (e.loaded / 1_048_576).toFixed(1)
+          const totalMB  = (e.total  / 1_048_576).toFixed(1)
+          setProgress(p => ({
+            ...p, phase: 'upload',
+            msg: `${t.uploading} ${loadedMB} / ${totalMB} MB`,
+            uploadPct: pct,
+          }))
+        }
 
-          if (event === 'status') {
-            setProgress(p => ({ ...p, phase: data.phase, msg: data.msg }))
-          } else if (event === 'download') {
-            setProgress(p => ({ ...p, phase: 'download', msg: t.downloading, download: data }))
-          } else if (event === 'segment') {
-            segmentCount++
-            setProgress(p => ({ ...p, phase: 'transcribe', msg: t.transcribing, segments: segmentCount }))
-          } else if (event === 'done') {
-            setCues(data.segments)
-            setEditorMeta({ language: data.language, duration: data.duration, filename: data.filename })
-            setView('editor')
-            return
-          } else if (event === 'error') {
-            throw new Error(data.message)
+        // SSE-Stream-Chunks (kommt nach dem Upload)
+        xhr.onprogress = () => {
+          const chunk = xhr.responseText.slice(sseOffset)
+          sseOffset = xhr.responseText.length
+          const parts = chunk.split('\n\n')
+          for (const part of parts) {
+            const eventMatch = part.match(/^event: (\w+)/)
+            const dataMatch  = part.match(/^data: (.+)/m)
+            if (!eventMatch || !dataMatch) continue
+            const event = eventMatch[1]
+            let data
+            try { data = JSON.parse(dataMatch[1]) } catch { continue }
+
+            if (event === 'status') {
+              if (data.duration) audioDuration = data.duration
+              setProgress(p => ({ ...p, phase: data.phase, msg: data.msg, duration: audioDuration }))
+            } else if (event === 'download') {
+              setProgress(p => ({ ...p, phase: 'download', msg: t.downloading, download: data }))
+            } else if (event === 'segment') {
+              segmentCount++
+              const pct = audioDuration ? Math.min(99, Math.round((data.end / audioDuration) * 100)) : null
+              const timeLabel = audioDuration
+                ? ` — ${fmtSec(data.end)} / ${fmtSec(audioDuration)}`
+                : ` — ${segmentCount} ${t.segments}`
+              setProgress(p => ({
+                ...p, phase: 'transcribe',
+                msg: t.transcribing + timeLabel,
+                segments: segmentCount,
+                transcribePct: pct,
+              }))
+            } else if (event === 'done') {
+              setCues(data.segments)
+              setEditorMeta({ language: data.language, duration: data.duration, filename: data.filename })
+              resolve('done')
+            } else if (event === 'error') {
+              reject(new Error(data.message))
+            }
           }
         }
-      }
+
+        xhr.onload  = () => { if (xhr.status >= 400) reject(new Error(`HTTP ${xhr.status}`)) }
+        xhr.onerror = () => reject(new Error('Netzwerkfehler'))
+        xhr.send(form)
+      })
+
+      setView('editor')
     } catch (e) {
       setError(e.message)
       setView('error')
