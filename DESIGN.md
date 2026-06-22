@@ -1,6 +1,6 @@
 # DESIGN.md — SubScribe
 
-Architekturentscheidungen mit Begründung. Format angelehnt an ADRs (Architecture Decision Records), aber schlank gehalten.
+Architekturentscheidungen mit Begründung (ADR-Format, schlank).
 
 ---
 
@@ -8,44 +8,44 @@ Architekturentscheidungen mit Begründung. Format angelehnt an ADRs (Architectur
 
 **Entscheidung:** `faster-whisper` (CTranslate2-Backend) als primäre ASR-Engine.
 
-**Begründung:** Deutlich geringerer Speicherverbrauch und höhere Geschwindigkeit bei identischer Modellqualität (gleiche Whisper-Gewichte, anderes Inference-Backend). Läuft sowohl auf CUDA als auch auf CPU performant — relevant, da SubScribe auf zwei unterschiedlichen Geräten (Windows-GPU, MacBook) laufen soll.
-
-**Alternativen geprüft:** `openai-whisper` (Referenzimplementierung, langsamer), `whisper.cpp` (sehr schlank, aber Python-Integration umständlicher für das geplante Datenmodell).
+**Begründung:** Gleiche Modellgewichte wie openai-whisper, aber deutlich schneller und speichersparender. Läuft auf CUDA und CPU performant — relevant für den Einsatz auf Windows-GPU und MacBook.
 
 ---
 
-## ADR-002: Segment-Timestamps in Phase 1, Word-Alignment optional in Phase 3
+## ADR-002: Segment-Timestamps im MVP, Word-Alignment optional später
 
-**Entscheidung:** MVP nutzt die nativen Segment-Timestamps von faster-whisper. Wort-genaues Forced Alignment (whisperX) erst in Sprint 3, wenn der Bedarf sich am echten Use-Case bestätigt.
+**Entscheidung:** MVP nutzt native Segment-Timestamps. Wort-genaues Forced Alignment (whisperX) erst in Sprint 3, wenn der Bedarf am echten Use-Case bestätigt ist.
 
-**Begründung:** Segment-Timestamps reichen für valide .srt-Dateien aus. Word-Level-Alignment bringt zusätzliche Abhängigkeiten (eigenes Alignment-Modell pro Sprache) und Komplexität. Erst MVP zum Laufen bringen, dann Genauigkeit gezielt verbessern, statt Komplexität vorzuziehen.
+**Begründung:** Segment-Timestamps reichen für valide .srt-Dateien. Word-Level-Alignment bringt zusätzliche Abhängigkeiten pro Sprache — erst MVP stabilisieren.
 
 ---
 
-## ADR-003: CLI statt GUI in Phase 1
+## ADR-003: FastAPI statt Streamlit als UI-Backend
 
-**Entscheidung:** Keine grafische Oberfläche im MVP.
+**Entscheidung:** FastAPI + React (Vite) statt Streamlit.
 
-**Begründung:** Der Use-Case (Mediendatei rein, .srt raus) ist scriptbar und braucht keine Klickoberfläche, um nützlich zu sein. Eine GUI lässt sich später aufsetzen, falls der Workflow das rechtfertigt — sie ist aber eine eigene Entscheidung mit eigenem Aufwand, kein impliziter Folgeschritt.
+**Begründung:** Streamlit ist klobig, hat kein natives Drag & Drop und ist schwer erweiterbar. FastAPI gibt eine saubere REST-API (`POST /transcribe`), die direkt als Basis für ein zukünftiges Premiere CEP-Plugin dient — kein Umbau nötig. React-Frontend läuft separat, bleibt austauschbar.
+
+**Ports:** API `:8511`, Frontend Dev-Server `:5173`.
 
 ---
 
 ## ADR-004: pydantic als Datenmodell-Schicht
 
-**Entscheidung:** `Word`, `Segment`, `Transcript` als pydantic-Modelle statt lose typisierter Dicts.
+**Entscheidung:** `Word`, `Segment`, `Transcript` als pydantic-Modelle.
 
-**Begründung:** Validierung „for free", saubere JSON-Serialisierung für den Export, und ein stabiler interner Vertrag zwischen Transkriptions-Modul und Export-Modulen — wichtig, weil mehrere Exportformate (.srt, .vtt, .json) auf demselben Datenmodell aufbauen sollen, ohne Code zu duplizieren.
-
----
-
-## ADR-005: Gerätekompatibilität (CUDA / Metal / CPU) als First-Class-Anforderung
-
-**Entscheidung:** Automatische Geräteerkennung mit Fallback-Kette CUDA → MPS (Apple Silicon) → CPU, keine Annahme eines bestimmten Geräts im Code.
-
-**Begründung:** Du nutzt sowohl den Windows-PC (Nvidia-GPU) als auch das MacBook gleichwertig. Das Tool darf nicht an ein Gerät gekoppelt sein — Hardcoding von `device="cuda"` würde es auf dem Mac unbrauchbar machen und umgekehrt.
+**Begründung:** Validierung, JSON-Serialisierung und ein stabiler Vertrag zwischen Transkriptions- und Export-Modulen — alle Exportformate (.srt, .vtt, .json) bauen auf demselben Modell auf.
 
 ---
 
-## Offene Architekturfragen (noch keine Entscheidung)
-- Konfigurationsformat: `.env` vs. `config.yaml` — Tendenz YAML wegen Lesbarkeit bei mehreren Optionen (Modellgröße, Default-Sprache, Output-Verzeichnis), finale Entscheidung in Sprint 0
-- Paketmanager: `uv` vs. klassisches `venv`+`pip` — keine harte Anforderung, wird beim Setup pragmatisch entschieden
+## ADR-005: Automatische Geräteerkennung (CUDA → MPS → CPU)
+
+**Entscheidung:** Fallback-Kette in `utils/device.py`, kein Hardcoding.
+
+**Begründung:** Das Tool läuft auf Windows (Nvidia-GPU) und MacBook gleichwertig. `torch` wird optional importiert — `subscribe --help` funktioniert auch ohne GPU-Libs.
+
+---
+
+## Offene Fragen
+
+- `config.yaml` für Defaults — Tendenz YAML, Entscheidung in Sprint 4
