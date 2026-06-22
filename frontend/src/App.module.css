@@ -1,42 +1,188 @@
 .app {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 12px;
 }
 
+/* ── Header ── */
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
+  gap: 12px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
 }
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+}
+
+.brandIcon { color: var(--accent); }
 
 .title {
-  font-size: 22px;
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.3px;
 }
 
+.editorMeta {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+/* API status pill */
 .pill {
-  font-size: 12px;
-  padding: 0.3rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  font-weight: 500;
 }
 
-.online  { color: var(--success); border-color: var(--success); }
-.offline { color: var(--error);   border-color: var(--error); }
+/* Lang toggle */
+.langToggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: border-color 0.15s, background 0.15s;
+}
+.langToggle:hover { border-color: var(--accent); background: var(--surface-hover, var(--surface)); }
+.flagActive  { opacity: 1; }
+.flagInactive { opacity: 0.45; font-size: 11px; }
+
+.online  { color: var(--success); border-color: rgba(52,211,153,0.3); }
+.offline { color: var(--error);   border-color: rgba(248,113,113,0.3); }
 .checking { color: var(--text-muted); }
 
-.runBtn {
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; }
+
+/* ── Buttons ── */
+.primaryBtn {
   background: var(--accent);
   color: #fff;
   font-weight: 600;
-  font-size: 15px;
-  padding: 0.85rem;
+  font-size: 13px;
+  padding: 0.75rem;
   width: 100%;
-  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: var(--radius);
+  transition: background 0.15s;
 }
 
-.runBtn:hover { background: var(--accent-hover); }
+.primaryBtn:hover:not(:disabled) { background: var(--accent-hover); }
+.primaryBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.ghostBtn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 0.6rem;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: var(--radius);
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.ghostBtn:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
+/* ── Editor layout ── */
+.editorLayout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 12px;
+  min-height: 0;
+  flex: 1;
+}
+
+.editorLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.editorRight {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Format switcher */
+.formatRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.formatLabel {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.formatOptions {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.formatBtn {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 0;
+  transition: all 0.12s;
+}
+
+.formatBtn:hover { border-color: var(--accent); color: var(--text); }
+
+.formatActive {
+  background: rgba(124, 106, 247, 0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Inline error */
+.inlineError {
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 6px;
+  color: var(--error);
+  font-size: 11px;
+  padding: 8px 10px;
+  line-height: 1.5;
+}

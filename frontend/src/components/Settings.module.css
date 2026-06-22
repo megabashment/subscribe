@@ -1,26 +1,240 @@
 .bar {
   display: flex;
-  gap: 1rem;
+  gap: 12px;
   flex-wrap: wrap;
-  padding: 1rem;
+  padding: 14px 16px;
   background: var(--surface);
   border-radius: var(--radius);
   border: 1px solid var(--border);
+  align-items: flex-end;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   flex: 1;
-  min-width: 100px;
+  min-width: 90px;
 }
 
-.field span {
-  font-size: 11px;
+.field > span {
+  font-size: 10px;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
+  font-weight: 600;
 }
 
 .field select { width: 100%; }
+
+/* ── Context prompt input ── */
+.promptField { flex: 2; min-width: 160px; }
+
+.promptField input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 0.42rem 0.6rem;
+}
+.promptField input::placeholder { color: var(--text-muted); }
+
+/* ── VAD toggle ── */
+.toggleField { min-width: 58px; flex: 0; }
+
+.toggle {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0.38rem 0.6rem;
+  width: 100%;
+  transition: all 0.15s;
+}
+
+.toggleOn {
+  background: rgba(52, 211, 153, 0.1);
+  border-color: rgba(52, 211, 153, 0.35);
+  color: #34d399;
+}
+
+/* ── Model trigger button ── */
+.modelWrap {
+  position: relative;
+  width: 100%;
+}
+
+.modelTrigger {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.38rem 0.6rem;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s;
+}
+
+.modelTrigger:not(:disabled):hover { border-color: var(--accent); }
+.modelTrigger:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.triggerName { flex: 1; font-weight: 500; }
+
+.chevron {
+  color: var(--text-muted);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.chevronOpen { transform: rotate(180deg); }
+
+/* ── Pills ── */
+.cachedPill, .dlPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cachedPill {
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.25);
+}
+
+.dlPill {
+  background: rgba(251, 146, 60, 0.1);
+  color: #fb923c;
+  border: 1px solid rgba(251, 146, 60, 0.22);
+}
+
+/* ── Dropdown panel ── */
+.panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  /* wide enough to show all 3 columns; clamp so it never overflows viewport */
+  width: clamp(420px, 60vw, 620px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  z-index: 200;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+}
+
+/* ── Each model row ── */
+.item {
+  display: grid;
+  grid-template-columns: 110px 1fr 180px;
+  gap: 12px;
+  padding: 11px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+  align-items: start;
+}
+
+.item:last-child { border-bottom: none; }
+.item:hover { background: var(--surface2); }
+.itemActive { background: rgba(124, 106, 247, 0.1); }
+.itemActive:hover { background: rgba(124, 106, 247, 0.14); }
+
+/* Left column */
+.itemLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.itemNameRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.itemName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.rec {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #a78bfa;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Quality dots */
+.dots { display: flex; gap: 3px; }
+.dotOn, .dotOff {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.dotOn  { background: var(--accent); }
+.dotOff { background: var(--border); }
+
+/* Center column */
+.itemCenter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.speed {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.useCase {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Right column */
+.itemRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.procons { text-align: right; }
+
+.pro {
+  font-size: 10px;
+  color: #34d399;
+  line-height: 1.6;
+}
+
+.con {
+  font-size: 10px;
+  color: #fb923c;
+  line-height: 1.6;
+}
