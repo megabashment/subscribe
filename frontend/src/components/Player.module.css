@@ -17,3 +17,39 @@
   width: 100%;
   display: block;
 }
+
+/* ── No-file placeholder ── */
+.noFile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 20px;
+  cursor: pointer;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.noFile:hover {
+  border-color: var(--accent);
+  background: rgba(124, 106, 247, 0.04);
+}
+
+.noFileIcon { color: var(--text-muted); }
+
+.noFileLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.noFileHint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.fileInput {
+  display: none;
+}

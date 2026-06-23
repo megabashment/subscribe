@@ -381,7 +381,7 @@ export default function App() {
         <div className={styles.editorLayout}>
           {/* Player — fixed at top, full width */}
           <div style={{ flexShrink: 0 }}>
-            <Player ref={playerRef} file={file} onTimeUpdate={setCurrentTime} />
+            <Player ref={playerRef} file={file} onTimeUpdate={setCurrentTime} onFileSelect={setFile} />
           </div>
 
           {/* Toolbar: format switcher + export + back */}
