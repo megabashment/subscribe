@@ -95,14 +95,15 @@ _PANNS_MAP: dict[str, tuple[str, float]] = {
     'Laughter':             ('[Lachen]',   0.70),
     'Crying, sobbing':      ('[Weinen]',   0.70),
     'Screaming':            ('[Schreien]', 0.72),
-    'Groan':                ('[Stöhnen]',  0.70),
-    'Sigh':                 ('[Seufzen]',  0.72),
+    'Groan':                ('[Stöhnen]',  0.62),  # lower: sexual groaning sits here
+    'Moan':                 ('[Stöhnen]',  0.60),  # AudioSet class for moaning — key for sex scenes
+    'Sigh':                 ('[Seufzen]',  0.68),  # sighing often accompanies moaning
     'Cough':                ('[Husten]',   0.75),
     'Sneeze':               ('[Niesen]',   0.78),
     'Applause':             ('[Applaus]',  0.72),
     'Music':                ('[Musik]',    0.80),
     'Whistling':            ('[Pfeifen]',  0.75),
-    'Whimper':              ('[Wimmern]',  0.72),
+    'Whimper':              ('[Wimmern]',  0.65),  # whimpering close to moaning acoustically
     'Baby cry, infant cry': ('[Weinen]',   0.72),
 }
 
