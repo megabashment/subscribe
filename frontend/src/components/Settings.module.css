@@ -5,7 +5,7 @@
   background: var(--surface);
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  overflow: hidden;
+  position: relative;
 }
 
 .coreRow {
@@ -24,6 +24,7 @@
   border-top: 1px solid var(--border);
   background: var(--surface2);
   align-items: flex-end;
+  border-radius: 0 0 var(--radius) var(--radius);
 }
 
 /* Advanced toggle button */
@@ -168,15 +169,12 @@
 
 /* ── Dropdown panel ── */
 .panel {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  min-width: 260px;
+  position: fixed;
+  min-width: 280px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
-  z-index: 200;
+  z-index: 9999;
   overflow-y: auto;
   max-height: 340px;
   box-shadow: 0 12px 40px rgba(0,0,0,0.55);

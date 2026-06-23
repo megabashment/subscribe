@@ -48,6 +48,7 @@ function ModelSelect({ value, onChange, disabled, t }) {
   const [open, setOpen] = useState(false)
   const [modelInfo, setModelInfo] = useState({})
   const [cursor, setCursor] = useState(0)
+  const [panelStyle, setPanelStyle] = useState({})
   const ref = useRef(null)
   const panelRef = useRef(null)
 
@@ -106,7 +107,14 @@ function ModelSelect({ value, onChange, disabled, t }) {
       <button
         type="button"
         className={styles.modelTrigger}
-        onClick={() => !disabled && setOpen(o => !o)}
+        onClick={() => {
+          if (disabled) return
+          if (!open && ref.current) {
+            const r = ref.current.getBoundingClientRect()
+            setPanelStyle({ top: r.bottom + 6, left: r.left, width: Math.max(r.width, 280) })
+          }
+          setOpen(o => !o)
+        }}
         disabled={disabled}
       >
         <span className={styles.triggerName}>{value}</span>
@@ -118,7 +126,7 @@ function ModelSelect({ value, onChange, disabled, t }) {
       </button>
 
       {open && (
-        <div className={styles.panel} ref={panelRef}>
+        <div className={styles.panel} ref={panelRef} style={panelStyle}>
           {Object.entries(MODEL_META).map(([name, m], idx) => {
             const mi = modelInfo[name]
             const cached = mi?.cached
