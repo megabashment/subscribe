@@ -319,11 +319,13 @@ export default function App() {
       {/* ── EDITOR ── */}
       {view === 'editor' && (
         <div className={styles.editorLayout}>
-          <div className={styles.editorLeft}>
-            <div ref={playerRef}>
-              <Player file={file} cues={cues} activeCueId={activeCueId} onTimeUpdate={setCurrentTime} />
-            </div>
+          {/* Player — fixed at top, full width */}
+          <div ref={playerRef} style={{ flexShrink: 0 }}>
+            <Player file={file} cues={cues} activeCueId={activeCueId} onTimeUpdate={setCurrentTime} />
+          </div>
 
+          {/* Toolbar: format switcher + export + back */}
+          <div className={styles.editorToolbar}>
             <div className={styles.formatRow}>
               <span className={styles.formatLabel}>{t.formatLabel}</span>
               <div className={styles.formatOptions}>
@@ -344,20 +346,22 @@ export default function App() {
               onClick={exportCues}
               disabled={hasErrors}
               title={hasErrors ? t.fixErrors : ''}
+              style={{ width: 'auto', padding: '0.55rem 1rem', flexShrink: 0 }}
             >
-              <IconDownload size={15} stroke={2} />
+              <IconDownload size={14} stroke={2} />
               {t.exportBtn(settings.format)}
             </button>
 
-            <button className={styles.ghostBtn} onClick={reset}>
-              <IconX size={14} stroke={2} />
+            <button className={styles.ghostBtn} onClick={reset} style={{ width: 'auto', padding: '0.55rem 0.9rem', flexShrink: 0 }}>
+              <IconX size={13} stroke={2} />
               {t.newFile}
             </button>
-
-            {error && <div className={styles.inlineError}>{error}</div>}
           </div>
 
-          <div className={styles.editorRight}>
+          {error && <div className={styles.inlineError} style={{ flexShrink: 0 }}>{error}</div>}
+
+          {/* Scrollable cue editor — fills remaining height */}
+          <div className={styles.editorCueList}>
             <CueEditor
               cues={cues}
               activeCueId={activeCueId}
