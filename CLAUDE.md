@@ -121,6 +121,26 @@ pytest tests/test_export_srt.py::test_fmt_time
 
 ---
 
+## Hardware-Quirks (GTX 1070 Pascal)
+
+- `float16` compute_type nicht unterstützt → Code fällt auto auf `int8_float16` → `int8` zurück
+- `int8_float16` läuft stabil auf Pascal (keine manuelle Konfiguration nötig)
+
+## PANNs Sound Events (panns-inference)
+
+- Checkpoint `~/panns_data/Cnn14_mAP=0.431.pth` (~350 MB) — muss manuell geladen werden, `wget` fehlt auf Windows:
+  ```powershell
+  Invoke-WebRequest "https://zenodo.org/record/3987831/files/Cnn14_mAP%3D0.431.pth?download=1" -OutFile "$env:USERPROFILE\panns_data\Cnn14_mAP=0.431.pth"
+  ```
+- Labels CSV `~/panns_data/class_labels_indices.csv` — ebenfalls manuell laden:
+  ```powershell
+  Invoke-WebRequest "http://storage.googleapis.com/us_audioset/youtube_corpus/v1/csv/class_labels_indices.csv" -OutFile "$env:USERPROFILE\panns_data\class_labels_indices.csv"
+  ```
+- PANNs scannt nur Gaps zwischen Whisper-Segmenten (0.8s–30s) — nicht das ganze Audio
+- Thresholds: 0.70–0.80 (bei niedrigeren Werten → tausende False Positives)
+
+---
+
 ## Dokumentation
 
 - `BACKLOG.md` — Sprint-Plan, offene Ideen, Versionierung, Git-Konventionen
