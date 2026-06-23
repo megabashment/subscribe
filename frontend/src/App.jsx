@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   IconPlayerPlay,
   IconDownload,
@@ -8,6 +8,7 @@ import {
   IconServerOff,
   IconLoader2,
   IconSubtask,
+  IconHistory,
 } from '@tabler/icons-react'
 import DropZone from './components/DropZone'
 import Settings from './components/Settings'
@@ -18,6 +19,10 @@ import { CueEditor } from './components/CueEditor'
 import { StatsBar } from './components/StatsBar'
 import styles from './App.module.css'
 import { de, en } from './i18n'
+import {
+  saveSession, loadSession, clearSession,
+  saveSessionFile, loadSessionFile,
+} from './useSessionStore'
 
 const API = 'http://localhost:8511'
 const DEFAULT_SETTINGS = { lang: 'auto', model: 'medium', format: 'srt', device: 'auto', vad: true, beamSize: 5, prompt: '', normalize: true, denoise: false, align: false, soundEvents: false }
@@ -47,8 +52,18 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(0)
   const [progress, setProgress] = useState(null)
   const [result, setResult] = useState(null)
+  const [savedSession, setSavedSession] = useState(null)  // pending restore prompt
 
   const playerRef = useRef(null)
+  const saveTimer = useRef(null)
+
+  // ── Check for saved session on mount ────────────────────────────────────────
+  useEffect(() => {
+    const session = loadSession()
+    if (session && session.cues?.length > 0) {
+      setSavedSession(session)
+    }
+  }, [])
 
   useEffect(() => {
     fetch(`${API}/health`)
@@ -70,9 +85,41 @@ export default function App() {
     }
   }, [currentTime, cues])
 
+  // ── Auto-save cues whenever they change (debounced 1.5s) ────────────────────
+  useEffect(() => {
+    if (view !== 'editor' || cues.length === 0) return
+    clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      saveSession({ cues, editorMeta, format: settings.format })
+    }, 1500)
+    return () => clearTimeout(saveTimer.current)
+  }, [cues, editorMeta, settings.format, view])
+
+  // ── Restore saved session ────────────────────────────────────────────────────
+  async function restoreSession() {
+    if (!savedSession) return
+    setCues(savedSession.cues)
+    setEditorMeta(savedSession.editorMeta)
+    if (savedSession.format) setSettings(s => ({ ...s, format: savedSession.format }))
+
+    // Try to restore the video file from IndexedDB
+    const restoredFile = await loadSessionFile()
+    if (restoredFile) setFile(restoredFile)
+
+    setSavedSession(null)
+    setView('editor')
+  }
+
+  function dismissRestore() {
+    setSavedSession(null)
+    clearSession()
+  }
+
   function reset() {
+    clearSession()
     setFile(null); setCues([]); setEditorMeta(null)
     setResult(null); setError(null); setProgress(null)
+    setSavedSession(null)
     setView('upload')
   }
 
@@ -88,6 +135,9 @@ export default function App() {
     setError(null)
     setProgress({ phase: 'upload', msg: '', segments: 0, uploadPct: 0, transcribePct: 0, duration: null })
 
+    // Save file to IndexedDB for session restore
+    saveSessionFile(file).catch(() => {})
+
     const form = new FormData()
     form.append('file', file)
     form.append('lang', settings.lang)
@@ -102,9 +152,6 @@ export default function App() {
     form.append('sound_events', settings.soundEvents)
 
     try {
-      // ── XHR: Upload-Fortschritt + SSE-Stream aus einer einzigen Verbindung ──
-      // responseType='text' + xhr.onprogress gibt inkrementelle SSE-Chunks.
-      // xhr.upload.onprogress gibt Byte-genauen Upload-Fortschritt.
       let segmentCount = 0
       let audioDuration = null
       let sseOffset = 0
@@ -115,7 +162,6 @@ export default function App() {
         xhr.open('POST', `${API}/transcribe/cues`)
         xhr.responseType = 'text'
 
-        // Upload-Fortschritt
         xhr.upload.onprogress = e => {
           if (!e.lengthComputable) return
           const pct = Math.round((e.loaded / e.total) * 100)
@@ -136,7 +182,6 @@ export default function App() {
           }))
         }
 
-        // SSE-Stream-Chunks (kommt nach dem Upload)
         xhr.onprogress = () => {
           const chunk = xhr.responseText.slice(sseOffset)
           sseOffset = xhr.responseText.length
@@ -229,10 +274,9 @@ export default function App() {
     }
   }
 
-  function seek(time) {
-    const el = playerRef.current?.querySelector('video, audio')
-    if (el) el.currentTime = time
-  }
+  const seek = useCallback((time) => {
+    playerRef.current?.seek(time)
+  }, [])
 
   function validateCuesLocal(c) {
     const errors = {}
@@ -246,13 +290,12 @@ export default function App() {
 
   const hasErrors = Object.keys(validateCuesLocal(cues)).length > 0
 
-  // API status pill content
   function computePillCls(device, computeType) {
-    if (!computeType) return styles.online          // not yet loaded — neutral green
+    if (!computeType) return styles.online
     if (computeType === 'float16') return styles.pillFloat16
     if (computeType === 'int8_float16') return styles.pillInt8f16
     if (device === 'cuda') return styles.pillInt8gpu
-    return styles.online                             // cpu int8 — neutral
+    return styles.online
   }
   const apiPill = apiStatus === false
     ? { icon: <IconServerOff size={12} stroke={2} />, label: t.apiOffline, cls: styles.offline }
@@ -294,6 +337,23 @@ export default function App() {
         </div>
       </header>
 
+      {/* ── Session restore banner ── */}
+      {savedSession && view === 'upload' && (
+        <div className={styles.restoreBanner}>
+          <IconHistory size={15} stroke={2} className={styles.restoreIcon} />
+          <span className={styles.restoreText}>
+            {savedSession.editorMeta?.filename
+              ? `"${savedSession.editorMeta.filename}" — ${savedSession.cues.length} segments`
+              : `${savedSession.cues.length} segments`}
+            {savedSession.savedAt && ` · ${new Date(savedSession.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+          </span>
+          <button className={styles.restoreBtn} onClick={restoreSession}>Restore session</button>
+          <button className={styles.restoreDismiss} onClick={dismissRestore}>
+            <IconX size={12} stroke={2} />
+          </button>
+        </div>
+      )}
+
       {/* ── UPLOAD ── */}
       {view === 'upload' && (
         <>
@@ -320,8 +380,8 @@ export default function App() {
       {view === 'editor' && (
         <div className={styles.editorLayout}>
           {/* Player — fixed at top, full width */}
-          <div ref={playerRef} style={{ flexShrink: 0 }}>
-            <Player file={file} cues={cues} activeCueId={activeCueId} onTimeUpdate={setCurrentTime} />
+          <div style={{ flexShrink: 0 }}>
+            <Player ref={playerRef} file={file} onTimeUpdate={setCurrentTime} />
           </div>
 
           {/* Toolbar: format switcher + export + back */}
